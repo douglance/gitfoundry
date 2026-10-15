@@ -62,14 +62,17 @@ Open the link the setup prints and choose **Forge** to watch the lineage. Ada ad
 
 ```mermaid
 flowchart TD
-    H([forge head]) --> A[ada adds tax] & G[grace adds currency] & L[linus adds discounts]
-    A & G --> I[integration fork]
-    L -. conflict handed back .-> R[linus resolves it on the integration line]
+    H(["forge head"]) --> A["ada adds tax"]
+    H --> G["grace adds currency"]
+    H --> L["linus adds discounts"]
+    A --> I["integration fork"]
+    G --> I
+    L -. "conflict handed back" .-> R["linus resolves it on the integration line"]
     I --> R
-    R --> T{tests pass on the exact merged code?}
-    T -- yes --> P([publish: the head moves only if nobody moved it first])
-    T -- no --> N[nothing is published]
-    S[grace's stale fork] -. refused .-> P
+    R --> T{"tests pass on the exact merged code?"}
+    T -- "yes" --> P(["publish: the head moves only if nobody moved it first"])
+    T -- "no" --> N["nothing is published"]
+    S["grace's stale fork"] -. "refused" .-> P
 ```
 
 - **Every change is a fork.** A fork holds the code plus a state tree with the agent's handoff notes, reviews and checks.
