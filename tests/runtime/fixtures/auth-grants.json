@@ -1,0 +1,31 @@
+{
+  "issuer": "https://issuer.p0-runtime.local",
+  "audience": "gitfoundry-runtime-harness",
+  "tenant": "tenant-alpha",
+  "principal": "principal-alice",
+  "current_grant": "grant-current",
+  "revoked_grant": "grant-revoked",
+  "grants": [
+    {
+      "id": "grant-current",
+      "tenant": "tenant-alpha",
+      "principal": "principal-alice",
+      "capabilities": ["codemode.execute", "mcp.tools.call"],
+      "revoked": false
+    },
+    {
+      "id": "grant-revoked",
+      "tenant": "tenant-alpha",
+      "principal": "principal-alice",
+      "capabilities": ["codemode.execute", "mcp.tools.call"],
+      "revoked": true
+    },
+    {
+      "id": "grant-other-tenant",
+      "tenant": "tenant-beta",
+      "principal": "principal-bob",
+      "capabilities": ["codemode.execute"],
+      "revoked": false
+    }
+  ]
+}

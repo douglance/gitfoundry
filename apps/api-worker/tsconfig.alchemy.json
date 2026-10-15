@@ -1,0 +1,27 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": [
+      "@cloudflare/workers-types"
+    ],
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable",
+      "ESNext.Disposable"
+    ]
+  },
+  "include": [
+    "alchemy.run.ts",
+    "src/**/*.ts"
+  ],
+  "references": [
+    {
+      "path": "../../packages/contracts"
+    },
+    {
+      "path": "../../packages/core"
+    }
+  ]
+}

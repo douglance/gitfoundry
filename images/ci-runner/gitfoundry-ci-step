@@ -1,0 +1,7 @@
+#!/bin/sh
+set -eu
+if [ "$#" -eq 0 ]; then
+  echo "gitfoundry-ci-step requires an executable path" >&2
+  exit 64
+fi
+exec "$@"

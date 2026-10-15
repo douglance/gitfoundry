@@ -1,0 +1,3734 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:gitfoundry:secondary-execution:v1",
+  "description": "Normative secondary execution contracts. Merge defs with domain.schema.json. GET request definitions describe decoded query parameters, not request bodies.",
+  "operationMappings": {
+    "run.list": {
+      "request": "ExecutionRunListQuery",
+      "response": "ExecutionRunPage",
+      "request_location": "query",
+      "pageItem": "Run"
+    },
+    "run.view": {
+      "request": "ExecutionRunReadQuery",
+      "response": "Run",
+      "request_location": "query"
+    },
+    "run.dispatch": {
+      "request": "ExecutionRunDispatchRequest",
+      "response": "ExecutionRunOperation"
+    },
+    "run.cancel": {
+      "request": "ExecutionRunCancelRequest",
+      "response": "ExecutionRunOperation"
+    },
+    "run.rerun": {
+      "request": "ExecutionRunRerunRequest",
+      "response": "ExecutionRunOperation"
+    },
+    "run.logs": {
+      "request": "ExecutionRunLogsQuery",
+      "response": "ExecutionLogPage",
+      "request_location": "query",
+      "pageItem": "ExecutionLogChunk"
+    },
+    "run.jobs": {
+      "request": "ExecutionRunJobsQuery",
+      "response": "ExecutionJobPage",
+      "request_location": "query",
+      "pageItem": "ExecutionJob"
+    },
+    "run.artifacts": {
+      "request": "ExecutionRunArtifactsQuery",
+      "response": "ExecutionArtifactPage",
+      "request_location": "query",
+      "pageItem": "ExecutionArtifact"
+    },
+    "check.list": {
+      "request": "ExecutionCheckListQuery",
+      "response": "ExecutionCheckPage",
+      "request_location": "query",
+      "pageItem": "Check"
+    },
+    "check.create": {
+      "request": "CheckCreate",
+      "response": "Check"
+    },
+    "check.edit": {
+      "request": "CheckPatch",
+      "response": "Check"
+    },
+    "workflow.list": {
+      "request": "ExecutionWorkflowListQuery",
+      "response": "ExecutionWorkflowPage",
+      "request_location": "query",
+      "pageItem": "ExecutionWorkflow"
+    },
+    "workflow.view": {
+      "request": "ExecutionWorkflowReadQuery",
+      "response": "ExecutionWorkflow",
+      "request_location": "query"
+    },
+    "workflow.create": {
+      "request": "ExecutionWorkflowCreate",
+      "response": "ExecutionWorkflow"
+    },
+    "workflow.edit": {
+      "request": "ExecutionWorkflowPatch",
+      "response": "ExecutionWorkflow"
+    },
+    "workflow.delete": {
+      "request": "ExecutionWorkflowDeleteRequest",
+      "response": "ExecutionWorkflowDeleteOperation"
+    },
+    "check.view": {
+      "request": null,
+      "response": "Check",
+      "method": "GET",
+      "path": "/api/v1/tenants/{tenant_id}/checks/{id}",
+      "capability": "check.read",
+      "cli": "gfy check view",
+      "asynchronous": false
+    },
+    "check.annotations": {
+      "request": "ExecutionCheckAnnotationQuery",
+      "response": "ExecutionCheckAnnotationPage",
+      "method": "GET",
+      "path": "/api/v1/tenants/{tenant_id}/checks/{id}/annotations",
+      "capability": "check.read",
+      "cli": "gfy check annotations",
+      "asynchronous": false,
+      "request_location": "query",
+      "pageItem": "ExecutionCheckAnnotation"
+    },
+    "run.steps": {
+      "request": "ExecutionRunStepsQuery",
+      "response": "ExecutionStepPage",
+      "method": "GET",
+      "path": "/api/v1/tenants/{tenant_id}/runs/{id}/jobs/{job_id}/steps",
+      "capability": "run.read",
+      "cli": "gfy run steps",
+      "asynchronous": false,
+      "request_location": "query",
+      "pageItem": "ExecutionStep"
+    },
+    "run.job.cancel": {
+      "request": "ExecutionJobCancelRequest",
+      "response": "ExecutionRunOperation",
+      "method": "POST",
+      "path": "/api/v1/tenants/{tenant_id}/runs/{id}/jobs/{job_id}/cancel",
+      "capability": "run.cancel",
+      "cli": "gfy run job cancel",
+      "asynchronous": true
+    },
+    "artifact.reserve": {
+      "request": "ExecutionArtifactReserveRequest",
+      "response": "ExecutionArtifactUploadIntent",
+      "method": "POST",
+      "path": "/api/v1/tenants/{tenant_id}/artifact-upload-intents",
+      "capability": "run.write",
+      "cli": "gfy artifact reserve",
+      "asynchronous": false
+    },
+    "artifact.finalize": {
+      "request": "ExecutionArtifactFinalizeRequest",
+      "response": "ExecutionArtifactOperation",
+      "method": "POST",
+      "path": "/api/v1/tenants/{tenant_id}/artifact-upload-intents/{id}/finalize",
+      "capability": "run.write",
+      "cli": "gfy artifact finalize",
+      "asynchronous": true
+    },
+    "artifact.download": {
+      "request": "ExecutionArtifactDownloadQuery",
+      "response": "ExecutionArtifactDownload",
+      "method": "GET",
+      "path": "/api/v1/tenants/{tenant_id}/artifacts/{id}/download",
+      "capability": "run.read",
+      "cli": "gfy artifact download",
+      "asynchronous": false,
+      "request_location": "query"
+    },
+    "artifact.delete": {
+      "request": "ExecutionArtifactDeleteRequest",
+      "response": "ExecutionArtifactOperation",
+      "method": "DELETE",
+      "path": "/api/v1/tenants/{tenant_id}/artifacts/{id}",
+      "capability": "run.admin",
+      "cli": "gfy artifact delete",
+      "asynchronous": true
+    },
+    "workflow.source": {
+      "request": null,
+      "response": "ExecutionWorkflowSource",
+      "method": "GET",
+      "path": "/api/v1/tenants/{tenant_id}/workflows/{id}/source",
+      "capability": "run.read",
+      "cli": "gfy workflow source",
+      "asynchronous": false
+    },
+    "run.job.view": {
+      "request": "ExecutionStepReadQuery",
+      "response": "ExecutionJob",
+      "method": "GET",
+      "path": "/api/v1/tenants/{tenant_id}/runs/{id}/jobs/{job_id}",
+      "capability": "run.read",
+      "cli": "gfy run job view",
+      "asynchronous": false,
+      "request_location": "query"
+    },
+    "artifact.upload.refresh": {
+      "request": "ExecutionArtifactRefreshRequest",
+      "response": "ExecutionArtifactUploadIntent",
+      "method": "POST",
+      "path": "/api/v1/tenants/{tenant_id}/artifact-upload-intents/{id}/refresh",
+      "capability": "run.write",
+      "cli": "gfy artifact upload refresh",
+      "asynchronous": false
+    },
+    "artifact.intent.view": {
+      "request": null,
+      "response": "ExecutionArtifactUploadIntent",
+      "method": "GET",
+      "path": "/api/v1/tenants/{tenant_id}/artifact-upload-intents/{id}",
+      "capability": "run.write",
+      "cli": "gfy artifact intent view",
+      "asynchronous": false
+    }
+  },
+  "$defs": {
+    "ExecutionJsonValue": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 65536
+        },
+        {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "$ref": "#/$defs/ExecutionJsonValue"
+          }
+        },
+        {
+          "type": "object",
+          "maxProperties": 1000,
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/ExecutionJsonValue"
+          }
+        }
+      ]
+    },
+    "ExecutionRunDispatchRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "repository_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "workflow_path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "commit_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "event_type": {
+          "type": "string",
+          "enum": [
+            "workflow_dispatch",
+            "repository_dispatch"
+          ]
+        },
+        "inputs": {
+          "type": "object",
+          "maxProperties": 100,
+          "propertyNames": {
+            "pattern": "^[A-Za-z_][A-Za-z0-9_-]{0,127}$"
+          },
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 65536
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              }
+            ]
+          }
+        },
+        "event_action": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "event_payload": {
+          "type": "object",
+          "maxProperties": 100,
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/ExecutionJsonValue"
+          }
+        },
+        "environment": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "execution_profile": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "repository_id",
+        "workflow_path",
+        "commit_sha",
+        "event_type"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "event_type": {
+                "const": "workflow_dispatch"
+              }
+            },
+            "required": [
+              "event_type"
+            ]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "event_action"
+                  ]
+                },
+                {
+                  "required": [
+                    "event_payload"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "event_type": {
+                "const": "repository_dispatch"
+              }
+            },
+            "required": [
+              "event_type"
+            ]
+          },
+          "then": {
+            "required": [
+              "event_action"
+            ],
+            "not": {
+              "required": [
+                "inputs"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "ExecutionRunCancelRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "expected_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "attempt": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 1024
+        },
+        "force": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "expected_version",
+        "attempt"
+      ]
+    },
+    "ExecutionRunRerunRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "expected_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "source_attempt": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "failed_only",
+            "all",
+            "selected_jobs"
+          ]
+        },
+        "job_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "maxItems": 256
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 1024
+        },
+        "acknowledge_unknown_effects": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "expected_version",
+        "source_attempt",
+        "mode"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "selected_jobs"
+              }
+            },
+            "required": [
+              "mode"
+            ]
+          },
+          "then": {
+            "required": [
+              "job_ids"
+            ],
+            "properties": {
+              "job_ids": {
+                "minItems": 1
+              }
+            }
+          },
+          "else": {
+            "not": {
+              "required": [
+                "job_ids"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "ExecutionRunListQuery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 100
+        },
+        "cursor": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 8192
+        },
+        "sort": {
+          "type": "string",
+          "enum": [
+            "created_at",
+            "updated_at"
+          ]
+        },
+        "direction": {
+          "type": "string",
+          "enum": [
+            "asc",
+            "desc"
+          ]
+        },
+        "repository_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "workflow_path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "commit_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "status": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "ACCEPTED",
+              "PLANNING",
+              "QUEUED",
+              "RUNNING",
+              "CANCELLING",
+              "FINALIZING",
+              "SUCCESS",
+              "FAILURE",
+              "CANCELLED",
+              "TIMED_OUT",
+              "UNSUPPORTED",
+              "REQUIRES_ATTENTION"
+            ]
+          },
+          "maxItems": 12
+        },
+        "since": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": []
+    },
+    "ExecutionRunReadQuery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "attempt": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": []
+    },
+    "ExecutionRunPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Run"
+          },
+          "maxItems": 1000
+        },
+        "next_cursor": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 8192
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "has_more": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "items",
+        "next_cursor",
+        "has_more"
+      ]
+    },
+    "ExecutionRunOperationProgress": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "phase": {
+          "type": "string",
+          "enum": [
+            "accepted",
+            "validating",
+            "planning",
+            "queued",
+            "cancelling",
+            "reconciling",
+            "completed"
+          ]
+        },
+        "completed_jobs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total_jobs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "message": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 1024
+        }
+      },
+      "required": [
+        "phase",
+        "completed_jobs",
+        "total_jobs",
+        "message"
+      ]
+    },
+    "ExecutionRunOperationResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "intent": {
+          "type": "string",
+          "enum": [
+            "dispatch",
+            "cancel",
+            "rerun"
+          ]
+        },
+        "run_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "attempt": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "target_run_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "resulting_status": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "ACCEPTED",
+                "PLANNING",
+                "QUEUED",
+                "RUNNING",
+                "CANCELLING",
+                "FINALIZING",
+                "SUCCESS",
+                "FAILURE",
+                "CANCELLED",
+                "TIMED_OUT",
+                "UNSUPPORTED",
+                "REQUIRES_ATTENTION"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "requires_reconciliation": {
+          "type": "boolean"
+        },
+        "target_job_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "intent",
+        "run_id",
+        "attempt",
+        "target_run_id",
+        "resulting_status",
+        "requires_reconciliation",
+        "target_job_id"
+      ]
+    },
+    "ExecutionRunOperation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "queued",
+            "running",
+            "cancelling",
+            "succeeded",
+            "failed",
+            "cancelled"
+          ]
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "run.dispatch",
+            "run.cancel",
+            "run.rerun",
+            "run.job.cancel"
+          ]
+        },
+        "progress": {
+          "$ref": "#/$defs/ExecutionRunOperationProgress"
+        },
+        "result": {
+          "$ref": "#/$defs/ExecutionRunOperationResult"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Error"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "tenant_id",
+        "id",
+        "version",
+        "created_at",
+        "updated_at",
+        "status",
+        "kind",
+        "progress",
+        "result",
+        "error"
+      ]
+    },
+    "ExecutionRunLogsQuery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "attempt": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "job_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "step_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "stream": {
+          "type": "string",
+          "enum": [
+            "all",
+            "stdout",
+            "stderr",
+            "controller"
+          ]
+        },
+        "cursor": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 8192
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 100
+        },
+        "max_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2097152,
+          "default": 1048576
+        },
+        "tail": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        }
+      },
+      "required": [],
+      "not": {
+        "required": [
+          "cursor",
+          "tail"
+        ]
+      }
+    },
+    "ExecutionLogChunk": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "run_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "attempt": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "job_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "job_attempt_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "step_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "stream": {
+          "type": "string",
+          "enum": [
+            "stdout",
+            "stderr",
+            "controller"
+          ]
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "start_offset": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end_offset": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "text": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 65536
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "redaction_applied": {
+          "type": "boolean"
+        },
+        "truncated": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "tenant_id",
+        "run_id",
+        "attempt",
+        "job_id",
+        "job_attempt_id",
+        "step_id",
+        "sequence",
+        "stream",
+        "timestamp",
+        "start_offset",
+        "end_offset",
+        "text",
+        "digest",
+        "redaction_applied",
+        "truncated"
+      ]
+    },
+    "ExecutionLogPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ExecutionLogChunk"
+          },
+          "maxItems": 1000
+        },
+        "next_cursor": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 8192
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "has_more": {
+          "type": "boolean"
+        },
+        "resume_cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8192
+        },
+        "complete": {
+          "type": "boolean"
+        },
+        "run_status": {
+          "type": "string",
+          "enum": [
+            "ACCEPTED",
+            "PLANNING",
+            "QUEUED",
+            "RUNNING",
+            "CANCELLING",
+            "FINALIZING",
+            "SUCCESS",
+            "FAILURE",
+            "CANCELLED",
+            "TIMED_OUT",
+            "UNSUPPORTED",
+            "REQUIRES_ATTENTION"
+          ]
+        },
+        "returned_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2097152
+        }
+      },
+      "required": [
+        "items",
+        "next_cursor",
+        "has_more",
+        "resume_cursor",
+        "complete",
+        "run_status",
+        "returned_bytes"
+      ]
+    },
+    "ExecutionRunJobsQuery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 100
+        },
+        "cursor": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 8192
+        },
+        "sort": {
+          "type": "string",
+          "enum": [
+            "created_at",
+            "updated_at"
+          ]
+        },
+        "direction": {
+          "type": "string",
+          "enum": [
+            "asc",
+            "desc"
+          ]
+        },
+        "attempt": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "status": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "BLOCKED",
+              "READY",
+              "WAITING_APPROVAL",
+              "ACTIVE",
+              "FINALIZING",
+              "SUCCEEDED",
+              "FAILED",
+              "SKIPPED",
+              "CANCELLED",
+              "TIMED_OUT",
+              "INFRA_FAILED",
+              "OUTCOME_UNKNOWN"
+            ]
+          },
+          "maxItems": 13
+        }
+      },
+      "required": []
+    },
+    "ExecutionStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "run_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "job_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "job_attempt_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "run_attempt": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "declared_step_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 512
+        },
+        "action_path": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 1024
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "PENDING",
+            "RUNNING",
+            "POST",
+            "FINALIZING",
+            "SUCCEEDED",
+            "FAILED",
+            "SKIPPED",
+            "CANCELLED",
+            "TIMED_OUT",
+            "OUTCOME_UNKNOWN"
+          ]
+        },
+        "outcome": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "success",
+                "failure",
+                "cancelled",
+                "timed_out",
+                "skipped",
+                "unknown"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "conclusion": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "success",
+                "failure",
+                "cancelled",
+                "timed_out",
+                "skipped",
+                "unknown"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "started_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "completed_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "output_manifest_digest": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "log_start_sequence": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "log_end_sequence": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "tenant_id",
+        "id",
+        "version",
+        "created_at",
+        "updated_at",
+        "run_id",
+        "job_id",
+        "job_attempt_id",
+        "run_attempt",
+        "index",
+        "declared_step_id",
+        "name",
+        "action_path",
+        "status",
+        "outcome",
+        "conclusion",
+        "started_at",
+        "completed_at",
+        "output_manifest_digest",
+        "log_start_sequence",
+        "log_end_sequence"
+      ]
+    },
+    "ExecutionJob": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "run_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "run_attempt": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "declared_job_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "name": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 512
+        },
+        "matrix": {
+          "type": "object",
+          "maxProperties": 100,
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/ExecutionJsonValue"
+          }
+        },
+        "matrix_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "needs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "maxItems": 100
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "BLOCKED",
+            "READY",
+            "WAITING_APPROVAL",
+            "ACTIVE",
+            "FINALIZING",
+            "SUCCEEDED",
+            "FAILED",
+            "SKIPPED",
+            "CANCELLED",
+            "TIMED_OUT",
+            "INFRA_FAILED",
+            "OUTCOME_UNKNOWN"
+          ]
+        },
+        "job_attempt_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "started_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "completed_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "execution_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "execution_profile": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "image_digest": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "resource_class": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "environment": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "step_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "steps_completed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "outputs": {
+          "type": "object",
+          "maxProperties": 100,
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 65536
+          }
+        },
+        "diagnostic_code": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "tenant_id",
+        "id",
+        "version",
+        "created_at",
+        "updated_at",
+        "run_id",
+        "run_attempt",
+        "declared_job_id",
+        "name",
+        "matrix",
+        "matrix_digest",
+        "needs",
+        "status",
+        "job_attempt_id",
+        "started_at",
+        "completed_at",
+        "execution_sha",
+        "execution_profile",
+        "image_digest",
+        "resource_class",
+        "environment",
+        "step_count",
+        "steps_completed",
+        "outputs",
+        "diagnostic_code"
+      ]
+    },
+    "ExecutionJobPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ExecutionJob"
+          },
+          "maxItems": 1000
+        },
+        "next_cursor": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 8192
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "has_more": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "items",
+        "next_cursor",
+        "has_more"
+      ]
+    },
+    "ExecutionStepPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ExecutionStep"
+          },
+          "maxItems": 1000
+        },
+        "next_cursor": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 8192
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "has_more": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "items",
+        "next_cursor",
+        "has_more"
+      ]
+    },
+    "ExecutionJobCancelRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "expected_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "run_attempt": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "job_attempt_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 1024
+        },
+        "force": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "expected_version",
+        "run_attempt",
+        "job_attempt_id"
+      ]
+    },
+    "ExecutionRunStepsQuery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 100
+        },
+        "cursor": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 8192
+        },
+        "sort": {
+          "type": "string",
+          "enum": [
+            "created_at",
+            "updated_at"
+          ]
+        },
+        "direction": {
+          "type": "string",
+          "enum": [
+            "asc",
+            "desc"
+          ]
+        },
+        "attempt": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": []
+    },
+    "ExecutionRunArtifactsQuery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 100
+        },
+        "cursor": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 8192
+        },
+        "sort": {
+          "type": "string",
+          "enum": [
+            "created_at",
+            "updated_at"
+          ]
+        },
+        "direction": {
+          "type": "string",
+          "enum": [
+            "asc",
+            "desc"
+          ]
+        },
+        "attempt": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "job_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "available",
+            "expired",
+            "deleting",
+            "deleted"
+          ]
+        }
+      },
+      "required": []
+    },
+    "ExecutionArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "repository_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "run_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "run_attempt": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "job_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "job_attempt_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "available",
+            "expired",
+            "deleting",
+            "deleted"
+          ]
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "content_type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "archive_format": {
+          "type": "string",
+          "enum": [
+            "zip",
+            "tar",
+            "tar.zst",
+            "raw"
+          ]
+        },
+        "file_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "retention_days": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3650
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "producer_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "provenance_digest": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "tenant_id",
+        "id",
+        "version",
+        "created_at",
+        "updated_at",
+        "repository_id",
+        "run_id",
+        "run_attempt",
+        "job_id",
+        "job_attempt_id",
+        "name",
+        "state",
+        "digest",
+        "size_bytes",
+        "content_type",
+        "archive_format",
+        "file_count",
+        "retention_days",
+        "expires_at",
+        "producer_id",
+        "provenance_digest"
+      ]
+    },
+    "ExecutionArtifactPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ExecutionArtifact"
+          },
+          "maxItems": 1000
+        },
+        "next_cursor": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 8192
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "has_more": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "items",
+        "next_cursor",
+        "has_more"
+      ]
+    },
+    "ExecutionArtifactReserveRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "run_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "run_attempt": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "job_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "job_attempt_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 20000000000
+        },
+        "content_type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "archive_format": {
+          "type": "string",
+          "enum": [
+            "zip",
+            "tar",
+            "tar.zst",
+            "raw"
+          ]
+        },
+        "file_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "retention_days": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3650,
+          "default": 30
+        }
+      },
+      "required": [
+        "run_id",
+        "run_attempt",
+        "job_id",
+        "job_attempt_id",
+        "name",
+        "digest",
+        "size_bytes",
+        "content_type",
+        "archive_format",
+        "file_count"
+      ]
+    },
+    "ExecutionUploadHeaders": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Content-Type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "Content-Length": {
+          "type": "string",
+          "pattern": "^[0-9]+$"
+        }
+      },
+      "required": [
+        "Content-Type",
+        "Content-Length"
+      ]
+    },
+    "ExecutionArtifactUploadPart": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "part_number": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "method": {
+          "const": "PUT"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https://"
+        },
+        "headers": {
+          "$ref": "#/$defs/ExecutionUploadHeaders"
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "part_number",
+        "offset",
+        "size_bytes",
+        "method",
+        "url",
+        "headers",
+        "expires_at"
+      ]
+    },
+    "ExecutionArtifactUploadIntent": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "run_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "run_attempt": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "job_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "job_attempt_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "artifact_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "reserved",
+            "uploading",
+            "finalizing",
+            "committed",
+            "expired",
+            "aborted"
+          ]
+        },
+        "parts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ExecutionArtifactUploadPart"
+          },
+          "maxItems": 10000
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "tenant_id",
+        "id",
+        "version",
+        "created_at",
+        "updated_at",
+        "run_id",
+        "run_attempt",
+        "job_id",
+        "job_attempt_id",
+        "artifact_name",
+        "digest",
+        "size_bytes",
+        "state",
+        "parts",
+        "expires_at"
+      ]
+    },
+    "ExecutionArtifactCompletedPart": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "part_number": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "etag": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "part_number",
+        "etag",
+        "digest"
+      ]
+    },
+    "ExecutionArtifactFinalizeRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "expected_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "parts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ExecutionArtifactCompletedPart"
+          },
+          "maxItems": 10000
+        }
+      },
+      "required": [
+        "expected_version",
+        "digest",
+        "size_bytes",
+        "parts"
+      ]
+    },
+    "ExecutionArtifactDownloadQuery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "disposition": {
+          "type": "string",
+          "enum": [
+            "attachment",
+            "inline"
+          ]
+        },
+        "filename": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "required": []
+    },
+    "ExecutionArtifactDownload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "content_type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "filename": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "method": {
+          "const": "GET"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https://"
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "range_supported": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "digest",
+        "size_bytes",
+        "content_type",
+        "filename",
+        "method",
+        "url",
+        "expires_at",
+        "range_supported"
+      ]
+    },
+    "ExecutionArtifactDeleteRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "expected_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 1024
+        }
+      },
+      "required": [
+        "expected_version"
+      ]
+    },
+    "ExecutionCheckAnnotation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "start_line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "end_line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "start_column": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "end_column": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "level": {
+          "type": "string",
+          "enum": [
+            "notice",
+            "warning",
+            "failure"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 512
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "raw_details": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 65536
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "path",
+        "start_line",
+        "end_line",
+        "start_column",
+        "end_column",
+        "level",
+        "message",
+        "title",
+        "raw_details"
+      ]
+    },
+    "ExecutionCheckOutput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 65536
+        },
+        "text": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 65536
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "title",
+        "summary",
+        "text"
+      ]
+    },
+    "CheckCreate": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "repository_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "commit_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "head_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "base_sha": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "execution_sha": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "plan_digest": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "policy_digest": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "job_attempt_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "evidence_kind": {
+          "type": "string",
+          "enum": [
+            "native_job",
+            "external",
+            "historical"
+          ]
+        },
+        "candidate_bound": {
+          "type": "boolean"
+        },
+        "provider_evidence_ref": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "queued",
+            "in_progress",
+            "completed"
+          ]
+        },
+        "conclusion": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "success",
+                "failure",
+                "neutral",
+                "cancelled",
+                "skipped",
+                "timed_out",
+                "action_required"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "details_url": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uri",
+              "maxLength": 2048
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "output": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExecutionCheckOutput"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "annotations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ExecutionCheckAnnotation"
+          },
+          "maxItems": 50
+        }
+      },
+      "required": [
+        "repository_id",
+        "commit_sha",
+        "head_sha",
+        "base_sha",
+        "execution_sha",
+        "plan_digest",
+        "policy_digest",
+        "job_attempt_id",
+        "evidence_kind",
+        "candidate_bound",
+        "provider_evidence_ref",
+        "name",
+        "status",
+        "conclusion",
+        "details_url",
+        "output",
+        "annotations"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "evidence_kind": {
+                "const": "native_job"
+              }
+            },
+            "required": [
+              "evidence_kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "job_attempt_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "provider_evidence_ref": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "evidence_kind": {
+                "enum": [
+                  "external",
+                  "historical"
+                ]
+              }
+            },
+            "required": [
+              "evidence_kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "provider_evidence_ref": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2048
+              },
+              "job_attempt_id": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "candidate_bound": {
+                "const": true
+              }
+            },
+            "required": [
+              "candidate_bound"
+            ]
+          },
+          "then": {
+            "properties": {
+              "base_sha": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{40}$"
+              },
+              "execution_sha": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{40}$"
+              },
+              "plan_digest": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "policy_digest": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "evidence_kind": {
+                "const": "historical"
+              }
+            },
+            "required": [
+              "evidence_kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "candidate_bound": {
+                "const": false
+              },
+              "status": {
+                "const": "completed"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "completed"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "conclusion": {
+                "type": "string",
+                "enum": [
+                  "success",
+                  "failure",
+                  "neutral",
+                  "cancelled",
+                  "skipped",
+                  "timed_out",
+                  "action_required"
+                ]
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "conclusion": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "CheckPatch": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "queued",
+            "in_progress",
+            "completed"
+          ]
+        },
+        "conclusion": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "success",
+                "failure",
+                "neutral",
+                "cancelled",
+                "skipped",
+                "timed_out",
+                "action_required"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "details_url": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uri",
+              "maxLength": 2048
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "output": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExecutionCheckOutput"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "annotations_append": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ExecutionCheckAnnotation"
+          },
+          "maxItems": 50
+        }
+      },
+      "required": [],
+      "minProperties": 1
+    },
+    "ExecutionCheckListQuery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 100
+        },
+        "cursor": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 8192
+        },
+        "sort": {
+          "type": "string",
+          "enum": [
+            "created_at",
+            "updated_at"
+          ]
+        },
+        "direction": {
+          "type": "string",
+          "enum": [
+            "asc",
+            "desc"
+          ]
+        },
+        "repository_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "commit_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "head_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "producer_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "queued",
+            "in_progress",
+            "completed"
+          ]
+        },
+        "evidence_kind": {
+          "type": "string",
+          "enum": [
+            "native_job",
+            "external",
+            "historical"
+          ]
+        },
+        "candidate_bound": {
+          "type": "boolean"
+        },
+        "since": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "repository_id"
+      ]
+    },
+    "ExecutionCheckPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Check"
+          },
+          "maxItems": 1000
+        },
+        "next_cursor": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 8192
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "has_more": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "items",
+        "next_cursor",
+        "has_more"
+      ]
+    },
+    "ExecutionCheckAnnotationPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ExecutionCheckAnnotation"
+          },
+          "maxItems": 1000
+        },
+        "next_cursor": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 8192
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "has_more": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "items",
+        "next_cursor",
+        "has_more"
+      ]
+    },
+    "ExecutionCheckAnnotationQuery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50,
+          "default": 50
+        },
+        "cursor": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 8192
+        }
+      },
+      "required": []
+    },
+    "ExecutionWorkflowTrigger": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "event_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "maxItems": 100
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 1024
+        },
+        "supported": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "event_name",
+        "actions",
+        "summary",
+        "supported"
+      ]
+    },
+    "ExecutionWorkflowInputDefinition": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "string",
+            "number",
+            "boolean",
+            "choice",
+            "environment"
+          ]
+        },
+        "description": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 1024
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "default": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 65536
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "choices": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "maxItems": 100
+        }
+      },
+      "required": [
+        "name",
+        "type",
+        "description",
+        "required",
+        "default",
+        "choices"
+      ]
+    },
+    "ExecutionWorkflowDiagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "path": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 1024
+        },
+        "line": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "column": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "severity": {
+          "type": "string",
+          "enum": [
+            "info",
+            "warning",
+            "error"
+          ]
+        },
+        "capability": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "path",
+        "line",
+        "column",
+        "severity",
+        "capability"
+      ]
+    },
+    "ExecutionWorkflow": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "repository_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "path": {
+          "type": "string",
+          "maxLength": 1024,
+          "pattern": "^(\\.github|\\.gitfoundry)/workflows/[^\\x00]+\\.ya?ml$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 512
+        },
+        "definition_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "definition_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "default_execution_profile": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "discovery": {
+          "type": "string",
+          "enum": [
+            "registered",
+            "discovered"
+          ]
+        },
+        "triggers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ExecutionWorkflowTrigger"
+          },
+          "maxItems": 100
+        },
+        "dispatch_inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ExecutionWorkflowInputDefinition"
+          },
+          "maxItems": 100
+        },
+        "qualification": {
+          "type": "string",
+          "enum": [
+            "qualified",
+            "unqualified",
+            "unsupported"
+          ]
+        },
+        "diagnostics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ExecutionWorkflowDiagnostic"
+          },
+          "maxItems": 1000
+        },
+        "source_size_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1048576
+        }
+      },
+      "required": [
+        "tenant_id",
+        "id",
+        "version",
+        "created_at",
+        "updated_at",
+        "repository_id",
+        "path",
+        "name",
+        "definition_sha",
+        "definition_digest",
+        "enabled",
+        "default_execution_profile",
+        "discovery",
+        "triggers",
+        "dispatch_inputs",
+        "qualification",
+        "diagnostics",
+        "source_size_bytes"
+      ]
+    },
+    "ExecutionWorkflowCreate": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "repository_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "path": {
+          "type": "string",
+          "maxLength": 1024,
+          "pattern": "^(\\.github|\\.gitfoundry)/workflows/[^\\x00]+\\.ya?ml$"
+        },
+        "definition_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "default_execution_profile": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "repository_id",
+        "path",
+        "definition_sha"
+      ]
+    },
+    "ExecutionWorkflowPatch": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "definition_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "default_execution_profile": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": [],
+      "minProperties": 1
+    },
+    "ExecutionWorkflowListQuery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 100
+        },
+        "cursor": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 8192
+        },
+        "sort": {
+          "type": "string",
+          "enum": [
+            "created_at",
+            "updated_at"
+          ]
+        },
+        "direction": {
+          "type": "string",
+          "enum": [
+            "asc",
+            "desc"
+          ]
+        },
+        "repository_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "qualification": {
+          "type": "string",
+          "enum": [
+            "qualified",
+            "unqualified",
+            "unsupported"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "maxLength": 1024,
+          "pattern": "^(\\.github|\\.gitfoundry)/workflows/[^\\x00]+\\.ya?ml$"
+        }
+      },
+      "required": [
+        "repository_id"
+      ]
+    },
+    "ExecutionWorkflowPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ExecutionWorkflow"
+          },
+          "maxItems": 1000
+        },
+        "next_cursor": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 8192
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "has_more": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "items",
+        "next_cursor",
+        "has_more"
+      ]
+    },
+    "ExecutionWorkflowReadQuery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": [],
+      "description": "No query parameters; source text uses workflow.source."
+    },
+    "ExecutionWorkflowDeleteRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "expected_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 1024
+        }
+      },
+      "required": [
+        "expected_version"
+      ]
+    },
+    "ExecutionWorkflowSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "workflow_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "repository_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "path": {
+          "type": "string",
+          "maxLength": 1024,
+          "pattern": "^(\\.github|\\.gitfoundry)/workflows/[^\\x00]+\\.ya?ml$"
+        },
+        "definition_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "definition_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "encoding": {
+          "const": "utf-8"
+        },
+        "content": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 1048576
+        }
+      },
+      "required": [
+        "workflow_id",
+        "repository_id",
+        "path",
+        "definition_sha",
+        "definition_digest",
+        "encoding",
+        "content"
+      ]
+    },
+    "ExecutionStepReadQuery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "attempt": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": []
+    },
+    "ExecutionArtifactOperationProgress": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "phase": {
+          "type": "string",
+          "enum": [
+            "accepted",
+            "verifying",
+            "publishing",
+            "deleting",
+            "completed"
+          ]
+        },
+        "verified_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "message": {
+          "type": "string",
+          "maxLength": 1024
+        }
+      },
+      "required": [
+        "phase",
+        "verified_bytes",
+        "total_bytes",
+        "message"
+      ]
+    },
+    "ExecutionArtifactOperationResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "intent": {
+          "type": "string",
+          "enum": [
+            "finalize",
+            "delete"
+          ]
+        },
+        "upload_intent_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "artifact_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "verified": {
+          "type": "boolean"
+        },
+        "deleted": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "intent",
+        "upload_intent_id",
+        "artifact_id",
+        "digest",
+        "verified",
+        "deleted"
+      ]
+    },
+    "ExecutionArtifactOperation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "queued",
+            "running",
+            "cancelling",
+            "succeeded",
+            "failed",
+            "cancelled"
+          ]
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "artifact.finalize",
+            "artifact.delete"
+          ]
+        },
+        "progress": {
+          "$ref": "#/$defs/ExecutionArtifactOperationProgress"
+        },
+        "result": {
+          "$ref": "#/$defs/ExecutionArtifactOperationResult"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Error"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "tenant_id",
+        "id",
+        "version",
+        "created_at",
+        "updated_at",
+        "status",
+        "kind",
+        "progress",
+        "result",
+        "error"
+      ]
+    },
+    "ExecutionWorkflowDeleteProgress": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "phase": {
+          "type": "string",
+          "enum": [
+            "accepted",
+            "suppressing",
+            "completed"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "maxLength": 1024
+        }
+      },
+      "required": [
+        "phase",
+        "message"
+      ]
+    },
+    "ExecutionWorkflowDeleteResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "workflow_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "suppressed": {
+          "type": "boolean"
+        },
+        "git_file_deleted": {
+          "const": false
+        }
+      },
+      "required": [
+        "workflow_id",
+        "suppressed",
+        "git_file_deleted"
+      ]
+    },
+    "ExecutionWorkflowDeleteOperation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "queued",
+            "running",
+            "cancelling",
+            "succeeded",
+            "failed",
+            "cancelled"
+          ]
+        },
+        "kind": {
+          "const": "workflow.delete"
+        },
+        "progress": {
+          "$ref": "#/$defs/ExecutionWorkflowDeleteProgress"
+        },
+        "result": {
+          "$ref": "#/$defs/ExecutionWorkflowDeleteResult"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Error"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "tenant_id",
+        "id",
+        "version",
+        "created_at",
+        "updated_at",
+        "status",
+        "kind",
+        "progress",
+        "result",
+        "error"
+      ]
+    },
+    "ExecutionArtifactRefreshRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "expected_version": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "expected_version"
+      ]
+    }
+  }
+}

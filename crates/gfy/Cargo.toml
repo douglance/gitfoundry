@@ -1,0 +1,20 @@
+[package]
+name = "gfy"
+edition.workspace = true
+rust-version.workspace = true
+version.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "gfy"
+path = "src/main.rs"
+
+[dependencies]
+async-trait.workspace = true
+gitfoundry-catalog.workspace = true
+incurs = { git = "https://github.com/douglance/incurs", rev = "973a77c908982f6da50398e2910226521ec5bf48", package = "incurs", version = "0.11.0", default-features = false }
+serde_json.workspace = true
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+reqwest = { version = "0.12.28", default-features = false, features = ["json", "rustls-tls"] }
+tokio.workspace = true

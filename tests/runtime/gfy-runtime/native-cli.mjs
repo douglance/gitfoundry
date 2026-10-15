@@ -1,0 +1,92 @@
+import { spawn } from "node:child_process";
+import { unwrapToolValue } from "./native-mcp-client.mjs";
+
+export async function exerciseNativeCli({ binary, cwd, env, seedBase, fixture, assertRuntime }) {
+  const executed = new Set();
+  const invoke = async (operation, args = [], expectedError) => {
+    const result = await new Promise((resolve, reject) => {
+      const child = spawn(binary, [...operation.split("."), ...args, "--format", "json"], { cwd, env, stdio: ["ignore", "pipe", "pipe"] });
+      const stdout = [], stderr = [];
+      const timer = setTimeout(() => child.kill("SIGKILL"), 20000);
+      child.stdout.on("data", chunk => stdout.push(chunk));
+      child.stderr.on("data", chunk => stderr.push(chunk));
+      child.on("error", error => { clearTimeout(timer); reject(error); });
+      child.on("close", (code, signal) => { clearTimeout(timer); resolve({ code, signal, stdout: Buffer.concat(stdout).toString("utf8"), stderr: Buffer.concat(stderr).toString("utf8") }); });
+    });
+    if (expectedError) {
+      assertRuntime("native CLI rejects " + operation + ": " + expectedError.source, result.code !== 0 && !result.signal && expectedError.test(result.stdout + result.stderr), { exitCode: result.code, diagnostic: (result.stdout + result.stderr).slice(-300) });
+      return;
+    }
+    let value;
+    try { value = unwrapToolValue(JSON.parse(result.stdout)); } catch {}
+    assertRuntime("native CLI operation succeeds: " + operation, result.code === 0 && !result.signal && value !== undefined, { operation, exitCode: result.code, diagnostic: result.stderr.slice(-200) });
+    executed.add(operation);
+    return value;
+  };
+  const version = result => result.version ?? result;
+  const content = text => Buffer.from(text).toString("base64");
+  const whoami = await invoke("auth.whoami");
+  assertRuntime("CLI identity binds the qualified tenant and principal", whoami.tenant_id === "tenant-a" && whoami.principal_id === "principal-a", {});
+  const input = { namespace_id: "namespace-tenant-a", name: "cli-created", default_branch: "code", visibility: "private" };
+  const createArgs = ["--idempotency-key", "native-cli-repository-create", "--input", JSON.stringify(input)];
+  const created = await invoke("repo.create", createArgs);
+  const repository = created.repository ?? created;
+  const replayed = await invoke("repo.create", createArgs);
+  assertRuntime("CLI repository replay returns one identical repository", (replayed.repository ?? replayed).id === repository.id, {});
+  const row = await (await fetch(seedBase + "/repository-by-name?tenant=tenant-a&name=cli-created")).json();
+  assertRuntime("CLI repository creation persists exact D1 metadata once", row.count === 1 && row.id === repository.id && row.namespace_id === input.namespace_id && row.default_branch === "code", { repository: repository.id });
+  const provisioned = await fixture.inspectRepository("tenant-a", repository.id);
+  assertRuntime("CLI creation provisions actual bare Git with the requested branch", provisioned.bare && provisioned.head === "refs/heads/code", {});
+  const listed = await invoke("repo.list");
+  const rows = Array.isArray(listed) ? listed : listed.items ?? listed.repositories ?? [];
+  assertRuntime("CLI repository list includes the independently provisioned repository", rows.some(item => item.id === repository.id && item.name === input.name), {});
+  const viewedRepo = await invoke("repo.view", ["--id", repository.id]);
+  assertRuntime("CLI repository view reads the exact created repository", (viewedRepo.repository ?? viewedRepo).id === repository.id && (viewedRepo.repository ?? viewedRepo).default_branch === "code", {});
+  const scope = ["--repository-id", repository.id];
+  const policy = { schema_version: 1, evaluator_digest: "runtime-cli-fixture", checks: [], reviews: { required_approvals: 0, trusted_reviewer_ids: ["principal-a"], actor_kinds: ["human"], key_ids: ["fixture-review-key"] } };
+  const initial = version(await invoke("forge.initialize", [...scope, "--operation-id", "native-cli-initialize", "--initial-code", JSON.stringify([{ path: "README.md", content_base64: content("Native CLI source\n") }]), "--initial-state", JSON.stringify([{ path: "config/publication.json", content_base64: content(JSON.stringify(policy)) }])]));
+  assertRuntime("CLI initialization persists exact code in native Git", await fixture.readCodeFile(initial.version_commit, "README.md", "tenant-a", repository.id) === "Native CLI source\n", {});
+  const fork = version(await invoke("forge.fork", [...scope, "--operation-id", "native-cli-fork", "--parent-version", initial.version_commit]));
+  assertRuntime("CLI fork preserves the requested parent and both roots", JSON.stringify(fork.descriptor.parents) === JSON.stringify([initial.version_commit]) && fork.descriptor.code_commit === initial.descriptor.code_commit && fork.descriptor.state_commit === initial.descriptor.state_commit, {});
+  const inspected = version(await invoke("forge.view", [...scope, "--version-commit", fork.version_commit]));
+  assertRuntime("CLI immutable view returns the exact fork descriptor", inspected.version_commit === fork.version_commit && inspected.descriptor.operation_id === "native-cli-fork", {});
+  const left = version(await invoke("forge.commit", [...scope, "--operation-id", "native-cli-left", "--parent-version", fork.version_commit, "--changes", JSON.stringify([{ tree: "code", path: "left.txt", content_base64: content("Independent CLI left branch\n") }])]));
+  const rightRecord = { id: "cli-right", body: "Independent CLI right branch", unicode: "café ✓" };
+  const right = version(await invoke("forge.commit", [...scope, "--operation-id", "native-cli-right", "--parent-version", fork.version_commit, "--changes", JSON.stringify([{ tree: "state", path: "coordination/cli-right.json", content_base64: content(JSON.stringify(rightRecord)) }])]));
+  const mergedResult = await invoke("forge.merge", [...scope, "--operation-id", "native-cli-merge", "--base-version", fork.version_commit, "--left-version", left.version_commit, "--right-version", right.version_commit]);
+  const merged = version(mergedResult);
+  assertRuntime("CLI three-way merge retains independently expected parent order", mergedResult.status === "version" && JSON.stringify(merged.descriptor.parents) === JSON.stringify([left.version_commit, right.version_commit]), {});
+  assertRuntime("CLI merge independently retains the left Git source", await fixture.readCodeFile(merged.version_commit, "left.txt", "tenant-a", repository.id) === "Independent CLI left branch\n", {});
+  const actualRight = await fixture.readStateRecord(merged.version_commit, "coordination/cli-right.json", "tenant-a", repository.id);
+  assertRuntime("CLI merge independently retains the exact right Git state record", JSON.stringify(actualRight) === JSON.stringify(rightRecord), {});
+  const read = await invoke("forge.read", [...scope, "--revision", merged.version_commit, "--tree", "state", "--path", "coordination/cli-right.json"]);
+  assertRuntime("CLI read returns the exact persisted Unicode state document", read.encoding === "base64" && JSON.stringify(JSON.parse(Buffer.from(read.content, "base64").toString("utf8"))) === JSON.stringify(rightRecord), {});
+  const compared = await invoke("forge.compare", [...scope, "--base-version", fork.version_commit, "--head-version", merged.version_commit]);
+  assertRuntime("CLI comparison reports independently expected code and state paths", compared.base_version === fork.version_commit && compared.head_version === merged.version_commit && JSON.stringify(compared.code_changes?.map(change => change.path)) === JSON.stringify(["left.txt"]) && JSON.stringify(compared.state_changes?.map(change => change.path)) === JSON.stringify(["coordination/cli-right.json"]), {});
+  const published = version(await invoke("forge.publish", [...scope, "--operation-id", "native-cli-publish", "--expected-head", initial.version_commit, "--new-version", merged.version_commit]));
+  assertRuntime("CLI conditional publication selects the exact merged candidate", published.version_commit === merged.version_commit, {});
+  const canonical = await fixture.inspectRepository("tenant-a", repository.id);
+  assertRuntime("CLI publication changes the independent native Git head", canonical.refs.includes("refs/heads/forge-head " + merged.version_commit), {});
+  const head = version(await invoke("forge.head", scope));
+  assertRuntime("CLI head reads the independently published Git revision", head.version_commit === merged.version_commit, {});
+  const recovered = await invoke("forge.recover", [...scope, "--publication-operation-id", "native-cli-publish"]);
+  assertRuntime("CLI recovery reads the durable successful publication receipt", recovered.status === "published" && version(recovered).version_commit === merged.version_commit, {});
+  const forks = await invoke("forge.list", scope);
+  assertRuntime("CLI fork listing retains initial, fork, branch, and merge revisions", [initial, fork, left, right, merged].every(expected => forks.versions?.some(item => item.version_commit === expected.version_commit)), {});
+  await invoke("forge.publish", [...scope, "--operation-id", "native-cli-stale", "--expected-head", initial.version_commit, "--new-version", left.version_commit], /HTTP_409|stale|conflict/i);
+  const beforeDenied = await fixture.inspectRepository("tenant-a", repository.id);
+  assertRuntime("stale CLI publication preserves the independent canonical Git head", beforeDenied.refs.includes("refs/heads/forge-head " + merged.version_commit), {});
+  const beforeForeign = await fixture.inspectRepository("tenant-b", "repo-tenant-b");
+  await invoke("forge.read", [...scope, "--revision", merged.version_commit, "--tree", "code", "--path", "../README.md"], /HTTP_400|path_invalid/i);
+  await invoke("forge.read", [...scope, "--tenant-id", "tenant-b", "--revision", merged.version_commit, "--tree", "state", "--path", "coordination/cli-right.json"], /HTTP_403|tenant_mismatch|permission_denied/i);
+  await invoke("forge.recover", [...scope, "--publication-operation-id", "native-cli-missing"], /HTTP_404|not_found/i);
+  await invoke("forge.commit", [...scope, "--tenant-id", "tenant-b", "--operation-id", "native-cli-foreign-write", "--parent-version", merged.version_commit, "--changes", JSON.stringify([{ tree: "code", path: "foreign-write.txt", content_base64: content("Denied foreign write\n") }])], /HTTP_403|tenant_mismatch|permission_denied/i);
+  await invoke("forge.commit", [...scope, "--operation-id", "native-cli-invalid-changes", "--parent-version", merged.version_commit, "--changes", "{"], /HTTP_400|invalid_input|changes/i);
+  const afterDenied = await fixture.inspectRepository("tenant-a", repository.id);
+  const afterForeign = await fixture.inspectRepository("tenant-b", "repo-tenant-b");
+  assertRuntime("denied CLI access and invalid input preserve every native Git ref in both tenants", JSON.stringify(afterDenied.refs) === JSON.stringify(beforeDenied.refs) && JSON.stringify(afterForeign.refs) === JSON.stringify(beforeForeign.refs), { refs: afterDenied.refs.length, foreignRefs: afterForeign.refs.length, addedOwnRefs: afterDenied.refs.filter(ref => !beforeDenied.refs.includes(ref)), addedForeignRefs: afterForeign.refs.filter(ref => !beforeForeign.refs.includes(ref)) });
+  const required = ["auth.whoami", "repo.create", "repo.list", "repo.view", "forge.initialize", "forge.fork", "forge.commit", "forge.view", "forge.read", "forge.merge", "forge.compare", "forge.publish", "forge.head", "forge.recover", "forge.list"];
+  const missing = required.filter(operation => !executed.has(operation));
+  assertRuntime("every native CLI operation completed against the live full stack", missing.length === 0 && executed.size === required.length, { count: executed.size, missing });
+  return { executed: [...executed].sort(), missing, repositoryId: repository.id, versionCommit: merged.version_commit };
+}

@@ -1,0 +1,23 @@
+/target
+target/
+node_modules/
+dist/
+*.tsbuildinfo
+.alchemy/
+.wrangler/
+.dev.vars
+.env
+.DS_Store
+*.log
+.local/
+/.tmp/
+/artifacts/fork-local-runtime/
+
+# Local Git transaction diagnostics
+/err
+/out
+
+# Visual validator private stores (tool cache, exceeds Artifacts blob limit)
+/output/**/validator-flash-*/
+.gfy-demo.json
+.gfy-self.json

@@ -1,0 +1,29 @@
+{
+  "name": "gitfoundry",
+  "version": "0.0.0-p0.1",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=26.6.0",
+    "pnpm": ">=10.33.0"
+  },
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "test:all": "node scripts/test-all.mjs",
+    "check:contracts": "pnpm --filter @gitfoundry/contracts build && node scripts/verify-contract-source.mjs",
+    "check": "pnpm test && pnpm build && pnpm check:contracts",
+    "dev": "pnpm build && node scripts/serve-local.mjs"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20261008.1",
+    "effect": "4.0.2",
+    "esbuild": "0.28.2",
+    "miniflare": "4.20260730.0",
+    "typescript": "5.9.3",
+    "istanbul-lib-coverage": "3.2.2",
+    "istanbul-lib-instrument": "6.0.3",
+    "vitest": "3.2.4"
+  }
+}

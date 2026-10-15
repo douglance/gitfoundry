@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "checks": [
+    {
+      "id": "all-tests",
+      "actor_ids": [
+        "local-check-runner"
+      ],
+      "actor_kinds": [
+        "service"
+      ],
+      "key_ids": [
+        "local-check-runner"
+      ]
+    }
+  ],
+  "reviews": {
+    "required_approvals": 1,
+    "trusted_reviewer_ids": [
+      "local-owner"
+    ],
+    "actor_kinds": [
+      "human"
+    ],
+    "key_ids": [
+      "local-reviewer"
+    ]
+  }
+}

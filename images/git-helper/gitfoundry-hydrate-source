@@ -1,0 +1,393 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+use Cwd qw(getcwd);
+use Digest::SHA qw(sha256_hex);
+use File::Path qw(make_path);
+use File::Spec;
+use Fcntl qw(O_RDONLY O_WRONLY O_CREAT O_EXCL O_NOFOLLOW);
+use IPC::Open3;
+use IO::Select;
+use JSON::PP qw(decode_json encode_json);
+use Symbol qw(gensym);
+
+my $request_frame = 'gitfoundry.source-hydrate.v1';
+my $result_frame = 'gitfoundry.source-hydrate.result.v1';
+my $safe_path = '/usr/local/bin:/usr/bin:/bin';
+my $json = JSON::PP->new->canonical(1)->utf8;
+my $max_request_line = 8192;
+my $max_pack_bytes = 128 * 1024 * 1024;
+my $state_dir = '.gitfoundry-source-hydrate';
+
+%ENV = (
+  PATH => $safe_path,
+  LC_ALL => 'C',
+  HOME => '/tmp/gitfoundry-hydrate-source-home',
+  GIT_TERMINAL_PROMPT => '0',
+  GIT_NO_REPLACE_OBJECTS => '1',
+  GIT_CONFIG_NOSYSTEM => '1',
+  GIT_CONFIG_GLOBAL => '/dev/null',
+  GIT_CONFIG_SYSTEM => '/dev/null',
+  GIT_PROTOCOL_FROM_USER => '0',
+);
+
+main();
+
+sub main {
+  my ($command, @args) = @ARGV;
+  die_text('unsupported command') unless defined $command && $command eq 'hydrate';
+  hydrate(@args);
+}
+
+sub hydrate {
+  my @args = @_;
+  my %flags = parse_flags(@args);
+  die_text('unsupported request format') unless ($flags{'request-format'} // '') eq $request_frame;
+  my $expected_request_sha = valid_sha256($flags{'request-sha256'} // '');
+  my $line = read_request_line($max_request_line);
+  die_text('request sha256 mismatch') unless sha256_hex($line) eq $expected_request_sha;
+  my $request = eval { decode_json($line) };
+  die_text('request JSON invalid') if $@ || ref($request) ne 'HASH';
+  my $ctx = normalize_request($request);
+  $ctx->{request_sha256} = $expected_request_sha;
+  validate_cwd($ctx);
+  $ctx->{git_version} = git_version();
+  prepare_state_dir();
+  my $pack_path = read_pack_to_temp($ctx);
+  validate_existing_role_state($ctx);
+  ensure_repository();
+  sanitize_repository();
+  import_pack($ctx, $pack_path);
+  unlink $pack_path;
+  verify_tip_graph($ctx);
+  run_git_ok('update-ref', "refs/source-hydrate/$ctx->{role}", $ctx->{expected_oid});
+  write_role_state($ctx);
+  print $json->encode({
+    frame => $result_frame,
+    ok => JSON::PP::true,
+    status => 'hydrated',
+    tenant_id => $ctx->{tenant_id},
+    repository_id => $ctx->{repository_id},
+    operation_id => $ctx->{operation_id},
+    role => $ctx->{role},
+    expected_oid => $ctx->{expected_oid},
+    tip => $ctx->{expected_oid},
+    pack_sha256 => $ctx->{pack_sha256},
+    pack_size_bytes => $ctx->{pack_size_bytes},
+    request_sha256 => $ctx->{request_sha256},
+    git_version => $ctx->{git_version},
+  }) . "\n";
+}
+
+sub normalize_request {
+  my ($r) = @_;
+  reject_unknown($r, [qw(frame tenant_id repository_id operation_id role expected_oid pack_sha256 pack_size_bytes)]);
+  required_literal($r->{frame}, $request_frame);
+  my $ctx = {
+    tenant_id => safe_id($r->{tenant_id}),
+    repository_id => safe_id($r->{repository_id}),
+    operation_id => safe_id($r->{operation_id}),
+    role => source_role($r->{role}),
+    expected_oid => oid($r->{expected_oid}),
+    pack_sha256 => valid_sha256($r->{pack_sha256} // ''),
+    pack_size_bytes => bounded_size($r->{pack_size_bytes}),
+  };
+  return $ctx;
+}
+
+sub validate_cwd {
+  my ($ctx) = @_;
+  my $expected = "/work/$ctx->{tenant_id}/$ctx->{repository_id}/$ctx->{operation_id}/trusted-git";
+  die_text('cwd mismatch') unless getcwd() eq $expected;
+  die_text('path symlink') if -l $expected;
+  validate_parent_chain(File::Spec->catfile($expected, 'leaf'));
+}
+
+sub prepare_state_dir {
+  validate_parent_chain(File::Spec->catfile($state_dir, 'leaf'));
+  die_text('state dir symlink') if -l $state_dir;
+  die_text('state path not directory') if -e $state_dir && !-d $state_dir;
+  make_path($state_dir) unless -d $state_dir;
+}
+
+sub read_pack_to_temp {
+  my ($ctx) = @_;
+  my $tmp = File::Spec->catfile($state_dir, "$ctx->{role}.pack.tmp.$$.");
+  validate_write_leaf($tmp);
+  sysopen(my $fh, $tmp, O_WRONLY|O_CREAT|O_EXCL|O_NOFOLLOW, 0600) or die_text('pack temp open failed');
+  binmode $fh;
+  my @st = stat($fh);
+  die_text('pack temp hardlink') if @st && $st[3] != 1;
+  my $sha = Digest::SHA->new(256);
+  my $bytes_total = 0;
+  while (1) {
+    my $chunk = '';
+    my $bytes = sysread(STDIN, $chunk, 8192);
+    die_text('pack read failed') unless defined $bytes;
+    last if $bytes == 0;
+    $bytes_total += $bytes;
+    die_text('pack exceeds bound') if $bytes_total > $max_pack_bytes;
+    print {$fh} $chunk or die_text('pack temp write failed');
+    $sha->add($chunk);
+  }
+  close $fh or die_text('pack temp close failed');
+  die_text('pack size mismatch') unless $bytes_total == $ctx->{pack_size_bytes};
+  die_text('pack sha256 mismatch') unless $sha->hexdigest eq $ctx->{pack_sha256};
+  return $tmp;
+}
+
+sub validate_existing_role_state {
+  my ($ctx) = @_;
+  my $path = role_state_path($ctx->{role});
+  return unless -e $path || -l $path;
+  validate_state_file($path);
+  my $text = slurp_bounded_nofollow($path, 8192);
+  my $value = eval { decode_json($text) };
+  die_text('role state invalid') if $@ || ref($value) ne 'HASH';
+  my $same = ($value->{request_sha256} // '') eq $ctx->{request_sha256}
+    && ($value->{pack_sha256} // '') eq $ctx->{pack_sha256}
+    && ($value->{pack_size_bytes} // -1) == $ctx->{pack_size_bytes}
+    && ($value->{expected_oid} // '') eq $ctx->{expected_oid}
+    && ($value->{role} // '') eq $ctx->{role};
+  die_text('role conflict') unless $same;
+}
+
+sub ensure_repository {
+  die_text('git dir symlink') if -l '.git';
+  if (!-e '.git') {
+    run_git_ok('init', '-q', '.');
+  }
+  die_text('git dir invalid') unless -d '.git' && !-l '.git';
+}
+
+sub sanitize_repository {
+  reject_git_aliases();
+  my $config = File::Spec->catfile('.git', 'config');
+  if (-e $config || -l $config) {
+    validate_state_file($config);
+    my $text = slurp_bounded_nofollow($config, 65536);
+    die_text('git config unsafe') if $text =~ /^\s*\[(?:filter|include|includeIf|core\.fsmonitor|credential|url|http|https|protocol|remote|submodule|diff|merge)\b/im;
+  }
+  write_file_atomic($config, "[core]\n\trepositoryformatversion = 0\n\tfilemode = true\n\tbare = false\n\tlogallrefupdates = true\n");
+  reject_git_aliases();
+}
+
+sub reject_git_aliases {
+  die_text('git hooks symlink') if -l File::Spec->catdir('.git', 'hooks');
+  die_text('git objects symlink') if -l File::Spec->catdir('.git', 'objects');
+  my $alternates = File::Spec->catfile('.git', 'objects', 'info', 'alternates');
+  die_text('git alternates unsafe') if -e $alternates || -l $alternates;
+  my $shallow = File::Spec->catfile('.git', 'shallow');
+  die_text('git shallow unsafe') if -e $shallow || -l $shallow;
+  my $pack_dir = File::Spec->catdir('.git', 'objects', 'pack');
+  if (opendir(my $dh, $pack_dir)) {
+    while (defined(my $entry = readdir($dh))) {
+      die_text('git promisor unsafe') if $entry =~ /\.promisor\z/;
+    }
+    closedir $dh;
+  }
+}
+
+sub import_pack {
+  my ($ctx, $path) = @_;
+  validate_state_file($path);
+  sysopen(my $fh, $path, O_RDONLY|O_NOFOLLOW) or die_text('pack temp open failed');
+  binmode $fh;
+  my @st = stat($fh);
+  die_text('pack temp hardlink') if @st && $st[3] != 1;
+  die_text('pack temp size mismatch') unless @st && $st[7] == $ctx->{pack_size_bytes};
+  my $sha = Digest::SHA->new(256);
+  my $bytes_total = 0;
+  while (1) {
+    my $chunk = '';
+    my $bytes = sysread($fh, $chunk, 8192);
+    die_text('pack temp read failed') unless defined $bytes;
+    last if $bytes == 0;
+    $bytes_total += $bytes;
+    die_text('pack exceeds bound') if $bytes_total > $max_pack_bytes;
+    $sha->add($chunk);
+  }
+  die_text('pack temp size mismatch') unless $bytes_total == $ctx->{pack_size_bytes};
+  die_text('pack sha256 mismatch') unless $sha->hexdigest eq $ctx->{pack_sha256};
+  sysseek($fh, 0, 0) or die_text('pack temp seek failed');
+  open(my $oldin, '<&', \*STDIN) or die_text('stdin dup failed');
+  open(STDIN, '<&', $fh) or die_text('stdin redirect failed');
+  my $code = system('git', safe_git_args('unpack-objects', '-q'));
+  open(STDIN, '<&', $oldin) or die_text('stdin restore failed');
+  close $oldin;
+  close $fh;
+  die_text('git unpack failed') if $code != 0;
+}
+
+sub verify_tip_graph {
+  my ($ctx) = @_;
+  my ($type_code, $type) = git_capture('cat-file', '-t', $ctx->{expected_oid});
+  die_text('expected tip missing') if $type_code != 0;
+  chomp $type;
+  die_text('expected tip missing') unless $type eq 'commit';
+  my ($list_code, $missing) = git_capture('rev-list', '--objects', '--missing=print', $ctx->{expected_oid});
+  die_text('expected graph incomplete') if $list_code != 0 || $missing =~ /^\?/m;
+}
+
+sub write_role_state {
+  my ($ctx) = @_;
+  my $path = role_state_path($ctx->{role});
+  my $bytes = $json->encode({
+    frame => $request_frame,
+    tenant_id => $ctx->{tenant_id},
+    repository_id => $ctx->{repository_id},
+    operation_id => $ctx->{operation_id},
+    role => $ctx->{role},
+    expected_oid => $ctx->{expected_oid},
+    pack_sha256 => $ctx->{pack_sha256},
+    pack_size_bytes => $ctx->{pack_size_bytes},
+    request_sha256 => $ctx->{request_sha256},
+    git_version => $ctx->{git_version},
+  }) . "\n";
+  write_file_atomic($path, $bytes);
+}
+
+sub role_state_path { my ($role) = @_; return File::Spec->catfile($state_dir, "$role.json"); }
+
+sub git_version {
+  my $v = git_stdout('--version');
+  chomp $v;
+  die_text('wrong git version') unless $v =~ /git version 2\.39\.5\b/;
+  return '2.39.5';
+}
+
+sub run_git_ok { my (@args) = @_; my ($code) = git_capture(@args); die_text('git command failed') if $code != 0; }
+sub git_stdout { my (@args) = @_; my ($code, $out) = git_capture(@args); die_text('git command failed') if $code != 0; return $out; }
+
+sub git_capture {
+  my (@args) = @_;
+  local %ENV = (%ENV, GIT_CONFIG_NOSYSTEM => '1', GIT_CONFIG_GLOBAL => '/dev/null', GIT_CONFIG_SYSTEM => '/dev/null', GIT_TERMINAL_PROMPT => '0', GIT_NO_REPLACE_OBJECTS => '1', GIT_PROTOCOL_FROM_USER => '0');
+  my $err = gensym;
+  my $pid = open3(my $in, my $out, $err, 'git', safe_git_args(@args));
+  close $in;
+  my $selector = IO::Select->new($out, $err);
+  my %buffers = (stdout => '', stderr => '');
+  my %names = (fileno($out) => 'stdout', fileno($err) => 'stderr');
+  while (my @ready = $selector->can_read) {
+    for my $fh (@ready) {
+      my $chunk = '';
+      my $bytes = sysread($fh, $chunk, 8192);
+      next unless defined $bytes;
+      if ($bytes == 0) { $selector->remove($fh); close $fh; next; }
+      my $name = $names{fileno($fh)} // 'stderr';
+      $buffers{$name} .= $chunk;
+      die_text('git output exceeds bound') if length($buffers{$name}) > 1024 * 1024;
+    }
+  }
+  waitpid($pid, 0);
+  return ($? >> 8, $buffers{stdout}, $buffers{stderr});
+}
+
+sub safe_git_args {
+  return ('-c', 'core.hooksPath=/dev/null', '-c', 'commit.gpgsign=false', '-c', 'tag.gpgsign=false', '-c', 'log.showSignature=false', '-c', 'protocol.allow=never', '-c', 'protocol.file.allow=never', '-c', 'protocol.http.allow=never', '-c', 'protocol.https.allow=never', '-c', 'gc.auto=0', '-c', 'maintenance.auto=false', @_);
+}
+
+sub read_request_line {
+  my ($max) = @_;
+  my $buf = '';
+  while (1) {
+    my $ch = '';
+    my $bytes = sysread(STDIN, $ch, 1);
+    die_text('request read failed') unless defined $bytes;
+    die_text('request missing newline') if $bytes == 0;
+    $buf .= $ch;
+    die_text('request line exceeds bound') if length($buf) > $max;
+    last if $ch eq "\n";
+  }
+  return $buf;
+}
+
+sub parse_flags {
+  my @args = @_;
+  my %flags;
+  while (@args) {
+    my $flag = shift @args;
+    die_text('invalid flag') unless defined $flag && $flag =~ /\A--([a-z0-9-]+)\z/;
+    my $value = shift @args;
+    die_text('missing flag value') unless defined $value;
+    $flags{$1} = $value;
+  }
+  return %flags;
+}
+
+sub validate_parent_chain {
+  my ($path) = @_;
+  my @parts = split m{/+}, $path;
+  my $cur = $path =~ m{\A/} ? '' : '.';
+  pop @parts;
+  for my $part (@parts) {
+    next if $part eq '' || $part eq '.';
+    $cur = $cur eq '.' ? $part : "$cur/$part";
+    die_text('path symlink') if -l $cur;
+    die_text('path not directory') if -e $cur && !-d $cur;
+  }
+}
+
+sub validate_state_file {
+  my ($path) = @_;
+  die_text('state path unsafe') if $path =~ /\0/ || $path =~ m{(?:\A|/)\.\.(?:/|\z)};
+  validate_parent_chain($path);
+  die_text('state file symlink') if -l $path;
+  die_text('state file missing') unless -f $path;
+  my @st = lstat($path);
+  die_text('state file hardlink') if @st && $st[3] != 1;
+}
+
+sub validate_write_leaf {
+  my ($path) = @_;
+  die_text('write path unsafe') if $path =~ /\0/ || $path =~ m{(?:\A|/)\.\.(?:/|\z)};
+  validate_parent_chain($path);
+  if (-e $path || -l $path) {
+    die_text('write leaf symlink') if -l $path;
+    my @st = lstat($path);
+    die_text('write leaf hardlink') if @st && $st[3] != 1;
+  }
+}
+
+sub write_file_atomic {
+  my ($path, $data) = @_;
+  validate_write_leaf($path);
+  my $tmp = "$path.tmp.$$";
+  validate_write_leaf($tmp);
+  sysopen(my $fh, $tmp, O_WRONLY|O_CREAT|O_EXCL|O_NOFOLLOW, 0600) or die_text('state temp open failed');
+  binmode $fh;
+  my @st = stat($fh);
+  die_text('state temp hardlink') if @st && $st[3] != 1;
+  print {$fh} $data or die_text('state temp write failed');
+  close $fh or die_text('state temp close failed');
+  rename $tmp, $path or die_text('state rename failed');
+}
+
+sub slurp_bounded_nofollow {
+  my ($path, $max) = @_;
+  sysopen(my $fh, $path, O_RDONLY|O_NOFOLLOW) or die_text('state file open failed');
+  binmode $fh;
+  my @st = stat($fh);
+  die_text('state file hardlink') if @st && $st[3] != 1;
+  die_text('state file too large') if @st && $st[7] > $max;
+  my $buf = '';
+  while (1) {
+    my $chunk = '';
+    my $bytes = sysread($fh, $chunk, 8192);
+    die_text('state read failed') unless defined $bytes;
+    last if $bytes == 0;
+    $buf .= $chunk;
+    die_text('state file too large') if length($buf) > $max;
+  }
+  close $fh;
+  return $buf;
+}
+
+sub required_literal { my ($value, $expected) = @_; die_text('bad literal') unless defined $value && $value eq $expected; }
+sub safe_id { my ($v) = @_; die_text('bad id') unless defined $v && !ref($v) && $v =~ /\A[A-Za-z0-9][A-Za-z0-9_.-]{0,63}\z/; return $v; }
+sub oid { my ($v) = @_; die_text('bad oid') unless defined $v && !ref($v) && $v =~ /\A[0-9a-f]{40}\z/ && $v ne ('0' x 40); return $v; }
+sub valid_sha256 { my ($v) = @_; die_text('bad sha256') unless defined $v && !ref($v) && $v =~ /\A[0-9a-f]{64}\z/; return $v; }
+sub source_role { my ($v) = @_; die_text('bad role') unless defined $v && !ref($v) && ($v eq 'source_target_pack' || $v eq 'source_head_pack'); return $v; }
+sub bounded_size { my ($v) = @_; die_text('bad size') unless defined $v && !ref($v) && $v =~ /\A(?:0|[1-9][0-9]*)\z/ && $v > 0 && $v <= $max_pack_bytes; return 0 + $v; }
+sub reject_unknown { my ($h, $allowed) = @_; my %ok = map { $_ => 1 } @$allowed; for my $key (keys %$h) { die_text('unknown field') unless $ok{$key}; } }
+sub die_text { my ($message) = @_; print STDERR "$message\n"; exit 2; }

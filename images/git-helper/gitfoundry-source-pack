@@ -1,0 +1,393 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+use Cwd qw(abs_path getcwd);
+use Digest::SHA qw(sha256_hex);
+use File::Path qw(make_path remove_tree);
+use File::Spec;
+use Fcntl qw(O_RDONLY O_WRONLY O_CREAT O_EXCL O_NOFOLLOW);
+use IPC::Open3;
+use IO::Select;
+use JSON::PP qw(decode_json encode_json);
+use Symbol qw(gensym);
+
+my $produce_frame = 'gitfoundry.source-pack.produce.v1';
+my $export_frame = 'gitfoundry.source-pack.export.v1';
+my $result_frame = 'gitfoundry.source-pack.result.v1';
+my $manifest_frame = 'gitfoundry.source-pack.manifest.v1';
+my $safe_path = '/usr/local/bin:/usr/bin:/bin';
+my $json = JSON::PP->new->canonical(1)->utf8;
+my $max_pack_bytes = 128 * 1024 * 1024;
+my $max_manifest_bytes = 64 * 1024;
+
+%ENV = (
+  PATH => $safe_path,
+  LC_ALL => 'C',
+  HOME => '/tmp/gitfoundry-source-pack-home',
+  GIT_TERMINAL_PROMPT => '0',
+  GIT_NO_REPLACE_OBJECTS => '1',
+  GIT_CONFIG_NOSYSTEM => '1',
+  GIT_CONFIG_GLOBAL => '/dev/null',
+  GIT_CONFIG_SYSTEM => '/dev/null',
+);
+
+main();
+
+sub main {
+  my ($command, @args) = @ARGV;
+  if (defined $command && $command eq 'produce') { produce(@args); return; }
+  if (defined $command && $command eq 'export') { export_artifact(@args); return; }
+  die_text('unsupported command');
+}
+
+sub produce {
+  my @args = @_;
+  my %flags = parse_flags(@args);
+  die_text('unsupported request format') unless ($flags{'request-format'} // '') eq $produce_frame;
+  my $expected_sha = valid_sha256($flags{'request-sha256'} // '');
+  my $stdin = read_bounded_stdin(8192);
+  my $request = eval { decode_json($stdin) };
+  die_text('request JSON invalid') if $@ || ref($request) ne 'HASH';
+  my $ctx = eval { normalize_produce($request) };
+  if ($@) { emit_failure($request, 'rejected', [{ code => 'invalid_request', path => undef }]); exit 0; }
+  die_text('request sha256 mismatch') unless sha256_hex($json->encode($ctx->{public})) eq $expected_sha;
+  $ctx->{request_sha256} = $expected_sha;
+
+  my $version = git_version();
+  my $ok = eval { validate_output_dir($ctx->{output_dir}); 1 };
+  unless ($ok) { emit_failure_ctx($ctx, 'rejected', [{ code => 'output_dir_invalid', path => undef }]); exit 0; }
+  unless (eval { make_path($ctx->{output_dir}); 1 }) { emit_failure_ctx($ctx, 'rejected', [{ code => 'output_dir_invalid', path => undef }]); exit 0; }
+
+  my $tmp = File::Spec->catdir($ctx->{output_dir}, 'fetch.git');
+  remove_tree($tmp) if -d $tmp;
+  run_git_ok({}, 'init', '--bare', $tmp);
+  my $askpass = write_askpass($ctx->{output_dir});
+  my %credential_env = (
+    GIT_ASKPASS => $askpass,
+    SSH_ASKPASS => $askpass,
+    GFY_SOURCE_PACK_USERNAME => $ctx->{credential_username},
+    GFY_SOURCE_PACK_PASSWORD => $ctx->{credential_password},
+  );
+  my @private_config = ('-c', 'credential.helper=');
+  if (defined $ctx->{artifacts_egress_proof}) {
+    push @private_config, ('-c', "http.$ctx->{provider_url}.extraHeader=x-gitfoundry-egress-proof: $ctx->{artifacts_egress_proof}");
+  }
+  my $fetch_code = run_git_env(\%credential_env, '-C', $tmp, @private_config, 'fetch', '--prune', '--no-tags', $ctx->{provider_url}, "+$ctx->{ref}:refs/source-pack/input");
+  unlink $askpass;
+  if ($fetch_code != 0) { emit_failure_ctx($ctx, 'rejected', [{ code => 'fetch_failed', path => undef }], $version); exit 0; }
+
+  my $tip = git_stdout({}, '-C', $tmp, 'rev-parse', 'refs/source-pack/input^{commit}');
+  chomp $tip;
+  if ($tip ne $ctx->{expected_oid}) { emit_failure_ctx($ctx, 'changed_tip', [{ code => 'expected_oid_mismatch', path => undef }], $version, $tip); exit 0; }
+
+  my $pack = git_stdout_bytes_input({}, "$tip\n", '-C', $tmp, 'pack-objects', '--revs', '--stdout');
+  if (length($pack) > $max_pack_bytes) { emit_failure_ctx($ctx, 'rejected', [{ code => 'pack_too_large', path => undef }], $version, $tip); exit 0; }
+  my $pack_sha = sha256_hex($pack);
+  my $pack_path = File::Spec->catfile($ctx->{output_dir}, 'source.pack');
+  atomic_write_file($pack_path, $pack);
+  my $manifest = {
+    frame => $manifest_frame,
+    public => $ctx->{public},
+    request_sha256 => $ctx->{request_sha256},
+    pack => { filename => 'source.pack', sha256 => $pack_sha, size_bytes => length($pack) },
+    git_version => $version,
+  };
+  my $manifest_bytes = $json->encode($manifest) . "\n";
+  if (length($manifest_bytes) > $max_manifest_bytes) { emit_failure_ctx($ctx, 'rejected', [{ code => 'manifest_too_large', path => undef }], $version, $tip); exit 0; }
+  my $manifest_sha = sha256_hex($manifest_bytes);
+  my $manifest_path = File::Spec->catfile($ctx->{output_dir}, 'manifest.json');
+  atomic_write_file($manifest_path, $manifest_bytes);
+  my $result = result($ctx, 'packed', JSON::PP::true, $version, $tip, $pack_sha, length($pack), $manifest_sha);
+  print $json->encode($result) . "\n";
+}
+
+sub export_artifact {
+  my @args = @_;
+  my %flags = parse_flags(@args);
+  die_text('unsupported request format') unless ($flags{'request-format'} // '') eq $export_frame;
+  my $expected_request_sha = valid_sha256($flags{'request-sha256'} // '');
+  my $stdin = read_bounded_stdin(2048);
+  my $request = eval { decode_json($stdin) };
+  die_text('request JSON invalid') if $@ || ref($request) ne 'HASH';
+  my $ctx = normalize_export($request);
+  die_text('request sha256 mismatch') unless sha256_hex($json->encode($ctx->{public})) eq $expected_request_sha;
+  my $file = $ctx->{artifact} eq 'manifest' ? 'manifest.json' : 'source.pack';
+  my $path = File::Spec->catfile($ctx->{state_dir}, $file);
+  validate_state_file($ctx->{state_dir}, $path);
+  my $max = $ctx->{artifact} eq 'manifest' ? $max_manifest_bytes : $max_pack_bytes;
+  my $bytes = slurp_bounded_nofollow($path, $max);
+  die_text('artifact sha256 mismatch') unless sha256_hex($bytes) eq $ctx->{expected_sha256};
+  binmode STDOUT;
+  print $bytes;
+}
+
+sub normalize_produce {
+  my ($r) = @_;
+  reject_unknown($r, [qw(frame public private)]);
+  required_literal($r->{frame}, $produce_frame);
+  my $public = $r->{public};
+  my $private = $r->{private};
+  die 'bad public' unless ref($public) eq 'HASH';
+  die 'bad private' unless ref($private) eq 'HASH';
+  reject_unknown($public, [qw(tenant_id repository_id operation_id fence_token provider_repository ref expected_oid role output_dir)]);
+  reject_unknown($private, [qw(provider_url credential artifacts_egress_proof)]);
+  my $tenant = safe_id($public->{tenant_id});
+  my $repo = safe_id($public->{repository_id});
+  my $op = safe_id($public->{operation_id});
+  my $role = source_role($public->{role});
+  my $ctx = {
+    tenant_id => $tenant,
+    repository_id => $repo,
+    operation_id => $op,
+    fence_token => bounded_text($public->{fence_token}, 256),
+    provider_repository => bounded_text($public->{provider_repository}, 512),
+    ref => git_ref($public->{ref}),
+    expected_oid => oid($public->{expected_oid}),
+    role => $role,
+    output_dir => safe_abs_path($public->{output_dir}),
+    provider_url => provider_url($private->{provider_url}),
+  };
+  my $expected_output = "/work/$tenant/$repo/$op/source-pack";
+  die 'bad output path' unless $ctx->{output_dir} eq $expected_output;
+  my $cred = $private->{credential};
+  die 'bad credential' unless ref($cred) eq 'HASH' && ($cred->{type} // '') eq 'basic';
+  reject_unknown($cred, [qw(type username password)]);
+  $ctx->{credential_username} = bounded_text($cred->{username}, 256);
+  $ctx->{credential_password} = bounded_text($cred->{password}, 2048);
+  $ctx->{artifacts_egress_proof} = egress_proof($private->{artifacts_egress_proof}) if defined $private->{artifacts_egress_proof};
+  $ctx->{public} = { tenant_id => $tenant, repository_id => $repo, operation_id => $op, fence_token => $ctx->{fence_token}, provider_repository => $ctx->{provider_repository}, ref => $ctx->{ref}, expected_oid => $ctx->{expected_oid}, role => $role, output_dir => $ctx->{output_dir} };
+  return $ctx;
+}
+
+sub normalize_export {
+  my ($r) = @_;
+  reject_unknown($r, [qw(frame public)]);
+  required_literal($r->{frame}, $export_frame);
+  my $public = $r->{public};
+  die_text('bad public') unless ref($public) eq 'HASH';
+  reject_unknown($public, [qw(tenant_id repository_id operation_id state_dir artifact expected_sha256)]);
+  my $tenant = safe_id($public->{tenant_id});
+  my $repo = safe_id($public->{repository_id});
+  my $op = safe_id($public->{operation_id});
+  my $state_dir = safe_abs_path($public->{state_dir});
+  die_text('bad state path') unless $state_dir eq "/work/$tenant/$repo/$op/source-pack";
+  my $artifact = $public->{artifact} // '';
+  die_text('bad artifact') unless $artifact eq 'manifest' || $artifact eq 'pack';
+  my $expected = valid_sha256($public->{expected_sha256} // '');
+  return { tenant_id => $tenant, repository_id => $repo, operation_id => $op, state_dir => $state_dir, artifact => $artifact, expected_sha256 => $expected, public => { tenant_id => $tenant, repository_id => $repo, operation_id => $op, state_dir => $state_dir, artifact => $artifact, expected_sha256 => $expected } };
+}
+
+sub result {
+  my ($ctx, $status, $ok, $version, $tip, $pack_sha, $pack_size, $manifest_sha) = @_;
+  return {
+    frame => $result_frame,
+    ok => $ok,
+    status => $status,
+    tenant_id => $ctx->{tenant_id},
+    repository_id => $ctx->{repository_id},
+    operation_id => $ctx->{operation_id},
+    fence_token => $ctx->{fence_token},
+    provider_repository => $ctx->{provider_repository},
+    ref => $ctx->{ref},
+    expected_oid => $ctx->{expected_oid},
+    tip => $tip,
+    role => $ctx->{role},
+    request_sha256 => $ctx->{request_sha256},
+    pack_sha256 => $pack_sha,
+    pack_size_bytes => $pack_size,
+    pack_filename => 'source.pack',
+    manifest_sha256 => $manifest_sha,
+    git_version => $version,
+    state_ref => 'source-pack/manifest.json',
+  };
+}
+
+sub emit_failure_ctx {
+  my ($ctx, $status, $diagnostics, $version, $tip) = @_;
+  $version //= '2.39.5';
+  print $json->encode({ frame => $result_frame, ok => JSON::PP::false, status => $status, tenant_id => $ctx->{tenant_id}, repository_id => $ctx->{repository_id}, operation_id => $ctx->{operation_id}, fence_token => $ctx->{fence_token}, provider_repository => $ctx->{provider_repository}, ref => $ctx->{ref}, expected_oid => $ctx->{expected_oid}, tip => $tip // '', role => $ctx->{role}, request_sha256 => $ctx->{request_sha256} // '', git_version => $version, state_ref => 'source-pack/rejected.json', diagnostics => $diagnostics }) . "\n";
+}
+
+sub emit_failure {
+  my ($request, $status, $diagnostics) = @_;
+  my $public = ref($request->{public}) eq 'HASH' ? $request->{public} : {};
+  print $json->encode({ frame => $result_frame, ok => JSON::PP::false, status => $status, tenant_id => safe_id_or_unknown($public->{tenant_id}), repository_id => safe_id_or_unknown($public->{repository_id}), operation_id => safe_id_or_unknown($public->{operation_id}), fence_token => '', provider_repository => '', ref => '', expected_oid => '', tip => '', role => '', request_sha256 => '', git_version => '2.39.5', state_ref => 'source-pack/rejected.json', diagnostics => $diagnostics }) . "\n";
+}
+
+sub read_bounded_stdin {
+  my ($max) = @_;
+  my $buf = '';
+  while (1) {
+    my $chunk = '';
+    my $bytes = sysread(STDIN, $chunk, 1024);
+    die_text('request read failed') unless defined $bytes;
+    last if $bytes == 0;
+    $buf .= $chunk;
+    die_text('request exceeds stdin bound') if length($buf) > $max;
+  }
+  return $buf;
+}
+
+sub parse_flags {
+  my @args = @_;
+  my %flags;
+  while (@args) {
+    my $flag = shift @args;
+    die_text('invalid flag') unless defined $flag && $flag =~ /\A--([a-z0-9-]+)\z/;
+    my $value = shift @args;
+    die_text('missing flag value') unless defined $value;
+    $flags{$1} = $value;
+  }
+  return %flags;
+}
+
+sub write_askpass {
+  my ($dir) = @_;
+  my $path = File::Spec->catfile($dir, "askpass.$$ .sh");
+  $path =~ s/ //g;
+  atomic_write_file($path, "#!/bin/sh\ncase \"\$1\" in\n*Username*) printf '%s\\n' \"\$GFY_SOURCE_PACK_USERNAME\" ;;\n*Password*) printf '%s\\n' \"\$GFY_SOURCE_PACK_PASSWORD\" ;;\n*) exit 1 ;;\nesac\n");
+  chmod 0700, $path;
+  return $path;
+}
+
+sub git_version {
+  my $v = git_stdout({}, '--version');
+  chomp $v;
+  die_text('wrong git version') unless $v =~ /git version 2\.39\.5\b/;
+  return '2.39.5';
+}
+
+sub run_git_ok { my ($extra_env, @args) = @_; my $code = run_git_env($extra_env, @args); die "git failed @args\n" if $code != 0; }
+sub run_git_env { my ($extra_env, @args) = @_; my ($code) = git_capture_env($extra_env, @args); return $code; }
+sub git_stdout { my ($extra_env, @args) = @_; my ($code, $out) = git_capture_env($extra_env, @args); die "git failed @args\n" if $code != 0; return $out; }
+sub git_stdout_bytes_input { my ($extra_env, $input, @args) = @_; my ($code, $out) = git_capture_env($extra_env, @args, { input => $input }); die "git failed @args\n" if $code != 0; return $out; }
+
+sub git_capture_env {
+  my ($extra_env, @args) = @_;
+  my $opts = (ref($args[-1]) eq 'HASH') ? pop @args : {};
+  my $err = gensym;
+  local %ENV = git_env($extra_env);
+  my $pid = open3(my $in, my $out, $err, 'git', safe_git_args(@args));
+  if (exists $opts->{input}) { print {$in} $opts->{input}; }
+  close $in;
+  my $selector = IO::Select->new($out, $err);
+  my %buffers = (stdout => '', stderr => '');
+  my %names = (fileno($out) => 'stdout', fileno($err) => 'stderr');
+  while (my @ready = $selector->can_read) {
+    for my $fh (@ready) {
+      my $chunk = '';
+      my $bytes = sysread($fh, $chunk, 8192);
+      next unless defined $bytes;
+      if ($bytes == 0) { $selector->remove($fh); close $fh; next; }
+      my $name = $names{fileno($fh)} // 'stderr';
+      $buffers{$name} .= $chunk;
+      die 'git output exceeds helper bound' if length($buffers{$name}) > $max_pack_bytes + 1;
+    }
+  }
+  waitpid($pid, 0);
+  return ($? >> 8, $buffers{stdout}, $buffers{stderr});
+}
+
+sub safe_git_args {
+  return ('-c', 'core.hooksPath=/dev/null', '-c', 'commit.gpgsign=false', '-c', 'tag.gpgsign=false', '-c', 'log.showSignature=false', '-c', 'protocol.allow=never', '-c', 'protocol.http.allow=always', '-c', 'protocol.https.allow=always', '-c', 'protocol.file.allow=never', '-c', 'gc.auto=0', '-c', 'maintenance.auto=false', @_);
+}
+
+sub git_env {
+  my ($extra) = @_;
+  return (%ENV, GIT_CONFIG_NOSYSTEM => '1', GIT_CONFIG_GLOBAL => '/dev/null', GIT_CONFIG_SYSTEM => '/dev/null', GIT_TERMINAL_PROMPT => '0', GIT_NO_REPLACE_OBJECTS => '1', %$extra);
+}
+
+sub validate_output_dir {
+  my ($dir) = @_;
+  validate_parent_chain($dir);
+  die 'output symlink' if -l $dir;
+  die 'output not directory' if -e $dir && !-d $dir;
+}
+
+sub validate_state_file {
+  my ($root, $path) = @_;
+  die_text('state path unsafe') if $path =~ /\0/ || index($path, "$root/") != 0;
+  validate_parent_chain($path);
+  die_text('state file missing') unless -f $path;
+  die_text('state file symlink') if -l $path;
+  my @st = lstat($path);
+  die_text('state file hardlink') if @st && $st[3] != 1;
+}
+
+sub validate_parent_chain {
+  my ($path) = @_;
+  my @parts = split m{/+}, $path;
+  my $cur = '';
+  pop @parts;
+  for my $part (@parts) {
+    next if $part eq '';
+    $cur .= "/$part";
+    die 'path symlink' if -l $cur;
+    die 'path not directory' if -e $cur && !-d $cur;
+  }
+}
+
+sub atomic_write_file {
+  my ($path, $data) = @_;
+  validate_write_leaf($path);
+  my $tmp = "$path.tmp.$$";
+  write_file_nofollow($tmp, $data);
+  rename $tmp, $path or die "rename $tmp $path: $!";
+}
+
+sub validate_write_leaf {
+  my ($path) = @_;
+  validate_parent_chain($path);
+  if (-e $path || -l $path) {
+    die 'write leaf symlink' if -l $path;
+    my @st = lstat($path);
+    die 'write leaf hardlink' if @st && $st[3] != 1;
+  }
+}
+
+sub write_file_nofollow {
+  my ($path, $data) = @_;
+  sysopen(my $fh, $path, O_WRONLY|O_CREAT|O_EXCL|O_NOFOLLOW, 0600) or die "open $path: $!";
+  binmode $fh;
+  my @st = stat($fh);
+  die "hardlink $path" if @st && $st[3] != 1;
+  print {$fh} $data;
+  close $fh or die "close $path: $!";
+}
+
+sub slurp_bounded_nofollow {
+  my ($path, $max) = @_;
+  sysopen(my $fh, $path, O_RDONLY|O_NOFOLLOW) or die_text("open $path: $!");
+  binmode $fh;
+  my @st = stat($fh);
+  die_text('state file hardlink') if @st && $st[3] != 1;
+  die_text('artifact too large') if @st && $st[7] > $max;
+  my $buf = '';
+  while (1) {
+    my $chunk = '';
+    my $bytes = sysread($fh, $chunk, 8192);
+    die_text('artifact read failed') unless defined $bytes;
+    last if $bytes == 0;
+    $buf .= $chunk;
+    die_text('artifact too large') if length($buf) > $max;
+  }
+  close $fh;
+  return $buf;
+}
+
+sub write_file { my ($path, $data) = @_; write_file_nofollow($path, $data); }
+sub slurp { my ($path) = @_; return slurp_bounded_nofollow($path, $max_pack_bytes); }
+
+sub required_literal { my ($value, $expected) = @_; die 'bad literal' unless defined $value && $value eq $expected; }
+sub safe_id { my ($v) = @_; die 'bad id' unless defined $v && $v =~ /\A[A-Za-z0-9][A-Za-z0-9_.-]{0,63}\z/; return $v; }
+sub safe_id_or_unknown { my ($v) = @_; return defined $v && $v =~ /\A[A-Za-z0-9][A-Za-z0-9_.-]{0,63}\z/ ? $v : 'unknown'; }
+sub oid { my ($v) = @_; die 'bad oid' unless defined $v && $v =~ /\A[0-9a-f]{40}\z/; return $v; }
+sub valid_sha256 { my ($v) = @_; die_text('bad sha256') unless defined $v && $v =~ /\A[0-9a-f]{64}\z/; return $v; }
+sub bounded_text { my ($v, $max) = @_; die 'bad text' unless defined $v && !ref($v) && length($v) > 0 && length($v) <= $max && $v !~ /\0/; return $v; }
+sub provider_url { my ($v) = @_; $v = bounded_text($v, 2048); die 'bad provider url' unless $v =~ /\Ahttps?:\/\// && $v !~ /[\s\0@]/; return $v; }
+sub git_ref { my ($v) = @_; die 'bad ref' unless defined $v && $v =~ /\Arefs\/(heads|tags)\/[A-Za-z0-9._\/-]+\z/ && $v !~ /\.\./ && $v !~ m{//} && $v !~ m{/[.]?$} && $v !~ /\.lock\z/; return $v; }
+sub source_role { my ($v) = @_; die 'bad role' unless defined $v && ($v eq 'source_head_pack' || $v eq 'source_target_pack'); return $v; }
+sub egress_proof { my ($v) = @_; die 'bad proof' unless defined $v && $v =~ /\A[A-Za-z0-9._~:-]{16,512}\z/; return $v; }
+sub safe_abs_path { my ($v) = @_; die 'bad path' unless defined $v && $v =~ m{\A/work/[A-Za-z0-9_.\/-]+\z} && $v !~ /\.\./ && $v !~ m{//}; return $v; }
+sub reject_unknown { my ($h, $allowed) = @_; my %ok = map { $_ => 1 } @$allowed; for my $key (keys %$h) { die 'unknown field' unless $ok{$key}; } }
+sub die_text { my ($message) = @_; print STDERR "$message\n"; exit 2; }

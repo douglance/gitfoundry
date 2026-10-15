@@ -1,0 +1,8 @@
+{
+  "name": "gitfoundry-e2e-inbox",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-10-07",
+  "workers_dev": false,
+  "vars": { "E2E_ADDRESS": "e2e@gitfoundry.dev" },
+  "d1_databases": [{ "binding": "INBOX", "database_name": "gitfoundry-e2e-inbox", "database_id": "e5fe25cd-e5a3-4bd9-838e-9a6844e9e7d7" }]
+}

@@ -1,0 +1,4653 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:gitfoundry:secondary-security:v1",
+  "title": "gitfoundry security and migration resource DTOs",
+  "description": "Normative secondary DTOs merged with canonical domain $defs; operationMappings maps native operation IDs. Unknown fields rejected. Runtime cross-tenant, epochs, digest, source evidence and approval checks remain mandatory.",
+  "type": "object",
+  "$defs": {
+    "SecId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "SecTimestamp": {
+      "type": "string",
+      "minLength": 20,
+      "maxLength": 40,
+      "format": "date-time"
+    },
+    "SecDigest": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64,
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "SecCapability": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[a-z][a-z0-9_.:-]*$"
+    },
+    "SecCapabilities": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/SecCapability"
+      },
+      "minItems": 0,
+      "maxItems": 256,
+      "uniqueItems": true
+    },
+    "SecReason": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2048
+    },
+    "SecResource": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "tenant",
+            "organization",
+            "repository",
+            "environment",
+            "run",
+            "extension_installation",
+            "secret"
+          ]
+        },
+        "id": {
+          "$ref": "#/$defs/SecId"
+        }
+      },
+      "required": [
+        "kind",
+        "id"
+      ]
+    },
+    "SecResourceFilter": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "resources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SecResource"
+          },
+          "minItems": 1,
+          "maxItems": 1000,
+          "uniqueItems": true
+        },
+        "capabilities": {
+          "$ref": "#/$defs/SecCapabilities"
+        }
+      },
+      "required": [
+        "resources",
+        "capabilities"
+      ]
+    },
+    "SecExistingAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "expected_version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "reason": {
+          "$ref": "#/$defs/SecReason"
+        }
+      },
+      "required": [
+        "expected_version"
+      ]
+    },
+    "SecIdentityPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "provisioning_mode": {
+          "type": "string",
+          "enum": [
+            "strict_directory",
+            "directory_confirmed_jit"
+          ]
+        },
+        "approved_connection_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SecId"
+          },
+          "minItems": 1,
+          "maxItems": 32,
+          "uniqueItems": true
+        },
+        "admin_group_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SecId"
+          },
+          "minItems": 1,
+          "maxItems": 128,
+          "uniqueItems": true
+        },
+        "sso_max_age_seconds": {
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 86400
+        },
+        "require_two_person_sensitive_approval": {
+          "type": "boolean"
+        },
+        "recovery_group_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SecId"
+          },
+          "minItems": 0,
+          "maxItems": 32,
+          "uniqueItems": true
+        },
+        "default_repository_role": {
+          "type": "string",
+          "enum": [
+            "none",
+            "read",
+            "triage",
+            "write"
+          ]
+        },
+        "max_recovery_grant_seconds": {
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 86400
+        }
+      },
+      "required": [
+        "provisioning_mode",
+        "approved_connection_ids",
+        "admin_group_ids",
+        "sso_max_age_seconds",
+        "require_two_person_sensitive_approval",
+        "recovery_group_ids",
+        "default_repository_role",
+        "max_recovery_grant_seconds"
+      ]
+    },
+    "SecRepositoryPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "allow_public": {
+          "type": "boolean"
+        },
+        "allow_cross_tenant_export": {
+          "type": "boolean"
+        },
+        "allow_anonymous_public_read": {
+          "type": "boolean"
+        },
+        "protected_ref_default": {
+          "type": "string",
+          "enum": [
+            "deny_direct_write",
+            "policy_managed"
+          ]
+        },
+        "allow_ssh": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "allow_public",
+        "allow_cross_tenant_export",
+        "allow_anonymous_public_read",
+        "protected_ref_default",
+        "allow_ssh"
+      ]
+    },
+    "SecRetentionPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "operational_logs_days": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3650
+        },
+        "artifacts_days": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3650
+        },
+        "audit_days": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3650
+        },
+        "soft_deleted_collaboration_days": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3650
+        },
+        "migration_raw_exports_days": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3650
+        }
+      },
+      "required": [
+        "operational_logs_days",
+        "artifacts_days",
+        "audit_days",
+        "soft_deleted_collaboration_days",
+        "migration_raw_exports_days"
+      ]
+    },
+    "SecTenantConfiguration": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "identity": {
+          "$ref": "#/$defs/SecIdentityPolicy"
+        },
+        "repository": {
+          "$ref": "#/$defs/SecRepositoryPolicy"
+        },
+        "retention": {
+          "$ref": "#/$defs/SecRetentionPolicy"
+        }
+      },
+      "required": [
+        "identity",
+        "repository",
+        "retention"
+      ]
+    },
+    "SecTenantView": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "created_at": {
+          "$ref": "#/$defs/SecTimestamp"
+        },
+        "updated_at": {
+          "$ref": "#/$defs/SecTimestamp"
+        },
+        "slug": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 63,
+          "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "provisioning",
+            "active",
+            "suspended",
+            "deleting"
+          ]
+        },
+        "policy_epoch": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "configuration": {
+          "$ref": "#/$defs/SecTenantConfiguration"
+        },
+        "jurisdiction": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "security_pending_operation_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SecId"
+          },
+          "minItems": 0,
+          "maxItems": 1000,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "tenant_id",
+        "id",
+        "version",
+        "created_at",
+        "updated_at",
+        "slug",
+        "state",
+        "policy_epoch",
+        "configuration",
+        "jurisdiction",
+        "security_pending_operation_ids"
+      ]
+    },
+    "SecTenantConfigure": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "identity": {
+          "$ref": "#/$defs/SecIdentityPolicy"
+        },
+        "repository": {
+          "$ref": "#/$defs/SecRepositoryPolicy"
+        },
+        "retention": {
+          "$ref": "#/$defs/SecRetentionPolicy"
+        },
+        "approval_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SecId"
+          },
+          "minItems": 0,
+          "maxItems": 16,
+          "uniqueItems": true
+        },
+        "reason": {
+          "$ref": "#/$defs/SecReason"
+        }
+      },
+      "required": [
+        "reason"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "identity"
+          ]
+        },
+        {
+          "required": [
+            "repository"
+          ]
+        },
+        {
+          "required": [
+            "retention"
+          ]
+        }
+      ]
+    },
+    "SecAgentCreate": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "display_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "description": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 2048
+        },
+        "owner_group_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "allowed_scopes": {
+          "$ref": "#/$defs/SecCapabilities"
+        },
+        "resource_filter": {
+          "$ref": "#/$defs/SecResourceFilter"
+        },
+        "oauth_app_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "expires_at": {
+          "$ref": "#/$defs/SecTimestamp"
+        }
+      },
+      "required": [
+        "display_name",
+        "owner_group_id",
+        "allowed_scopes",
+        "resource_filter",
+        "expires_at"
+      ]
+    },
+    "SecAgentView": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "created_at": {
+          "$ref": "#/$defs/SecTimestamp"
+        },
+        "updated_at": {
+          "$ref": "#/$defs/SecTimestamp"
+        },
+        "display_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "description": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 2048
+        },
+        "kind": {
+          "const": "service"
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "auth_epoch": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "owner_group_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "allowed_scopes": {
+          "$ref": "#/$defs/SecCapabilities"
+        },
+        "resource_filter": {
+          "$ref": "#/$defs/SecResourceFilter"
+        },
+        "oauth_app_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SecId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "expires_at": {
+          "$ref": "#/$defs/SecTimestamp"
+        }
+      },
+      "required": [
+        "tenant_id",
+        "id",
+        "version",
+        "created_at",
+        "updated_at",
+        "display_name",
+        "description",
+        "kind",
+        "active",
+        "auth_epoch",
+        "owner_group_id",
+        "allowed_scopes",
+        "resource_filter",
+        "oauth_app_id",
+        "expires_at"
+      ]
+    },
+    "SecAgentRevoke": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "expected_version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "expected_auth_epoch": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "reason": {
+          "$ref": "#/$defs/SecReason"
+        }
+      },
+      "required": [
+        "expected_version",
+        "expected_auth_epoch",
+        "reason"
+      ]
+    },
+    "SecDirectorySync": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "connection_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "expected_connection_version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "incremental",
+            "full"
+          ]
+        },
+        "cursor": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "connection_id",
+        "expected_connection_version",
+        "mode"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "full"
+              }
+            },
+            "required": [
+              "mode"
+            ]
+          },
+          "then": {
+            "not": {
+              "required": [
+                "cursor"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "SecDirectoryMemberView": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "created_at": {
+          "$ref": "#/$defs/SecTimestamp"
+        },
+        "updated_at": {
+          "$ref": "#/$defs/SecTimestamp"
+        },
+        "connection_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "external_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "principal_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "auth_epoch": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "display_name": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 256
+        },
+        "groups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SecId"
+          },
+          "minItems": 0,
+          "maxItems": 4096,
+          "uniqueItems": true
+        },
+        "provisioning_state": {
+          "type": "string",
+          "enum": [
+            "provisioned_unlinked",
+            "active",
+            "disabled",
+            "quarantined",
+            "tombstoned"
+          ]
+        }
+      },
+      "required": [
+        "tenant_id",
+        "id",
+        "version",
+        "created_at",
+        "updated_at",
+        "connection_id",
+        "external_id",
+        "principal_id",
+        "active",
+        "auth_epoch",
+        "display_name",
+        "groups",
+        "provisioning_state"
+      ]
+    },
+    "SecDirectoryDeactivate": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "expected_version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "expected_auth_epoch": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "reason": {
+          "$ref": "#/$defs/SecReason"
+        },
+        "connection_id": {
+          "$ref": "#/$defs/SecId"
+        }
+      },
+      "required": [
+        "expected_version",
+        "expected_auth_epoch",
+        "reason",
+        "connection_id"
+      ]
+    },
+    "SecGroupCreate": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "connection_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "external_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "required": [
+        "connection_id",
+        "external_id",
+        "name"
+      ]
+    },
+    "SecGroupEdit": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "reason": {
+          "$ref": "#/$defs/SecReason"
+        }
+      },
+      "required": [
+        "name",
+        "reason"
+      ]
+    },
+    "SecGrantCreate": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "subject_kind": {
+          "type": "string",
+          "enum": [
+            "group",
+            "service",
+            "tenant_role",
+            "recovery_human"
+          ]
+        },
+        "subject_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "resource_kind": {
+          "type": "string",
+          "enum": [
+            "tenant",
+            "repository",
+            "environment"
+          ]
+        },
+        "resource_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "role_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "capability_subset": {
+          "$ref": "#/$defs/SecCapabilities"
+        },
+        "expires_at": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SecTimestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reason": {
+          "$ref": "#/$defs/SecReason"
+        },
+        "approval_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SecId"
+          },
+          "minItems": 0,
+          "maxItems": 16,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "subject_kind",
+        "subject_id",
+        "resource_kind",
+        "resource_id",
+        "role_id",
+        "expires_at",
+        "reason"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "subject_kind": {
+                "const": "recovery_human"
+              }
+            },
+            "required": [
+              "subject_kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "expires_at": {
+                "$ref": "#/$defs/SecTimestamp"
+              },
+              "approval_ids": {
+                "minItems": 1
+              }
+            },
+            "required": [
+              "approval_ids"
+            ]
+          }
+        }
+      ]
+    },
+    "SecGrantEdit": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "role_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "capability_subset": {
+          "$ref": "#/$defs/SecCapabilities"
+        },
+        "expires_at": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SecTimestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reason": {
+          "$ref": "#/$defs/SecReason"
+        },
+        "approval_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SecId"
+          },
+          "minItems": 0,
+          "maxItems": 16,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "reason"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "role_id"
+          ]
+        },
+        {
+          "required": [
+            "capability_subset"
+          ]
+        },
+        {
+          "required": [
+            "expires_at"
+          ]
+        }
+      ]
+    },
+    "SecDecisionContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ref_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "head_sha": {
+          "type": "string",
+          "minLength": 40,
+          "maxLength": 40,
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "base_sha": {
+          "type": "string",
+          "minLength": 40,
+          "maxLength": 40,
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "action_method": {
+          "type": "string",
+          "enum": [
+            "read",
+            "create",
+            "update",
+            "delete",
+            "merge",
+            "publish",
+            "execute"
+          ]
+        },
+        "is_hypothetical": {
+          "const": true
+        }
+      },
+      "required": [
+        "is_hypothetical"
+      ]
+    },
+    "SecPermissionExplain": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "principal_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "capability": {
+          "$ref": "#/$defs/SecCapability"
+        },
+        "resource": {
+          "$ref": "#/$defs/SecResource"
+        },
+        "context": {
+          "$ref": "#/$defs/SecDecisionContext"
+        }
+      },
+      "required": [
+        "principal_id",
+        "capability",
+        "resource"
+      ]
+    },
+    "SecDecisionReason": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "detail": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 2048
+        },
+        "policy_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SecId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "visibility": {
+          "type": "string",
+          "enum": [
+            "full",
+            "redacted"
+          ]
+        }
+      },
+      "required": [
+        "code",
+        "detail",
+        "policy_id",
+        "visibility"
+      ]
+    },
+    "SecObligation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "required_check",
+            "required_review",
+            "protected_ref",
+            "deployment_approval",
+            "fresh_sso",
+            "quota",
+            "policy_hook",
+            "visibility",
+            "credential_scope"
+          ]
+        },
+        "satisfied": {
+          "type": "boolean"
+        },
+        "reference_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SecId"
+          },
+          "minItems": 0,
+          "maxItems": 128,
+          "uniqueItems": true
+        },
+        "detail": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 2048
+        }
+      },
+      "required": [
+        "kind",
+        "satisfied",
+        "reference_ids",
+        "detail"
+      ]
+    },
+    "SecPermissionDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "principal_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "capability": {
+          "$ref": "#/$defs/SecCapability"
+        },
+        "resource": {
+          "$ref": "#/$defs/SecResource"
+        },
+        "allowed": {
+          "type": "boolean"
+        },
+        "policy_epoch": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "principal_auth_epoch": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SecDecisionReason"
+          },
+          "minItems": 0,
+          "maxItems": 128,
+          "uniqueItems": true
+        },
+        "obligations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SecObligation"
+          },
+          "minItems": 0,
+          "maxItems": 128,
+          "uniqueItems": true
+        },
+        "evaluated_at": {
+          "$ref": "#/$defs/SecTimestamp"
+        },
+        "non_executing": {
+          "const": true
+        }
+      },
+      "required": [
+        "tenant_id",
+        "principal_id",
+        "capability",
+        "resource",
+        "allowed",
+        "policy_epoch",
+        "principal_auth_epoch",
+        "reasons",
+        "obligations",
+        "evaluated_at",
+        "non_executing"
+      ]
+    },
+    "SecPermissionSimulate": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "expected_policy_epoch": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "add_grants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SecGrantCreate"
+          },
+          "minItems": 0,
+          "maxItems": 100,
+          "uniqueItems": true
+        },
+        "remove_grant_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SecId"
+          },
+          "minItems": 0,
+          "maxItems": 100,
+          "uniqueItems": true
+        },
+        "proposed_ruleset_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SecId"
+          },
+          "minItems": 0,
+          "maxItems": 100,
+          "uniqueItems": true
+        },
+        "requests": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SecPermissionExplain"
+          },
+          "minItems": 1,
+          "maxItems": 1000,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "expected_policy_epoch",
+        "requests"
+      ]
+    },
+    "SecSimulationDifference": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "request_index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 999
+        },
+        "before": {
+          "$ref": "#/$defs/SecPermissionDecision"
+        },
+        "after": {
+          "$ref": "#/$defs/SecPermissionDecision"
+        },
+        "classification": {
+          "type": "string",
+          "enum": [
+            "unchanged",
+            "narrowed",
+            "widened",
+            "unknown"
+          ]
+        }
+      },
+      "required": [
+        "request_index",
+        "before",
+        "after",
+        "classification"
+      ]
+    },
+    "SecPermissionSimulation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "policy_epoch": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "proposed_digest": {
+          "$ref": "#/$defs/SecDigest"
+        },
+        "non_executing": {
+          "const": true
+        },
+        "differences": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SecSimulationDifference"
+          },
+          "minItems": 0,
+          "maxItems": 1000,
+          "uniqueItems": true
+        },
+        "evaluated_at": {
+          "$ref": "#/$defs/SecTimestamp"
+        }
+      },
+      "required": [
+        "tenant_id",
+        "policy_epoch",
+        "proposed_digest",
+        "non_executing",
+        "differences",
+        "evaluated_at"
+      ]
+    },
+    "SecPublicJwk": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "kty": {
+          "const": "RSA"
+        },
+        "use": {
+          "const": "sig"
+        },
+        "alg": {
+          "const": "RS256"
+        },
+        "n": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "e": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        }
+      },
+      "required": [
+        "kid",
+        "kty",
+        "use",
+        "alg",
+        "n",
+        "e"
+      ]
+    },
+    "SecJwks": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "keys": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SecPublicJwk"
+          },
+          "minItems": 1,
+          "maxItems": 5,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "keys"
+      ]
+    },
+    "SecSecretDelivery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "destination_kind": {
+          "type": "string",
+          "enum": [
+            "approved_secret_sink"
+          ]
+        },
+        "destination_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "destination_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "required": [
+        "destination_kind",
+        "destination_id",
+        "destination_key"
+      ]
+    },
+    "SecOAuthRegister": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "owner_group_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "client_type": {
+          "type": "string",
+          "enum": [
+            "public",
+            "confidential"
+          ]
+        },
+        "redirect_uris": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048,
+            "format": "uri"
+          },
+          "minItems": 0,
+          "maxItems": 32,
+          "uniqueItems": true
+        },
+        "grant_types": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "authorization_code",
+              "refresh_token",
+              "urn:ietf:params:oauth:grant-type:device_code",
+              "client_credentials"
+            ]
+          },
+          "minItems": 1,
+          "maxItems": 4,
+          "uniqueItems": true
+        },
+        "allowed_scopes": {
+          "$ref": "#/$defs/SecCapabilities"
+        },
+        "allowed_resources": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048,
+            "format": "uri"
+          },
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true
+        },
+        "token_endpoint_auth_method": {
+          "type": "string",
+          "enum": [
+            "none",
+            "private_key_jwt",
+            "client_secret_basic"
+          ]
+        },
+        "jwks": {
+          "$ref": "#/$defs/SecJwks"
+        },
+        "secret_delivery": {
+          "$ref": "#/$defs/SecSecretDelivery"
+        },
+        "owner_service_principal_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "installation_id": {
+          "$ref": "#/$defs/SecId"
+        }
+      },
+      "required": [
+        "name",
+        "owner_group_id",
+        "client_type",
+        "redirect_uris",
+        "grant_types",
+        "allowed_scopes",
+        "allowed_resources",
+        "token_endpoint_auth_method"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "client_type": {
+                "const": "public"
+              }
+            },
+            "required": [
+              "client_type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "token_endpoint_auth_method": {
+                "const": "none"
+              },
+              "grant_types": {
+                "not": {
+                  "contains": {
+                    "const": "client_credentials"
+                  }
+                }
+              }
+            },
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "jwks"
+                  ]
+                },
+                {
+                  "required": [
+                    "secret_delivery"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "token_endpoint_auth_method": {
+                "const": "private_key_jwt"
+              }
+            },
+            "required": [
+              "token_endpoint_auth_method"
+            ]
+          },
+          "then": {
+            "required": [
+              "jwks"
+            ],
+            "properties": {
+              "client_type": {
+                "const": "confidential"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "token_endpoint_auth_method": {
+                "const": "client_secret_basic"
+              }
+            },
+            "required": [
+              "token_endpoint_auth_method"
+            ]
+          },
+          "then": {
+            "required": [
+              "secret_delivery"
+            ],
+            "properties": {
+              "client_type": {
+                "const": "confidential"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "client_type": {
+                "const": "confidential"
+              }
+            },
+            "required": [
+              "client_type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "token_endpoint_auth_method": {
+                "type": "string",
+                "enum": [
+                  "private_key_jwt",
+                  "client_secret_basic"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "grant_types": {
+                "contains": {
+                  "const": "authorization_code"
+                }
+              }
+            },
+            "required": [
+              "grant_types"
+            ]
+          },
+          "then": {
+            "properties": {
+              "redirect_uris": {
+                "minItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "grant_types": {
+                "contains": {
+                  "const": "client_credentials"
+                }
+              }
+            },
+            "required": [
+              "grant_types"
+            ]
+          },
+          "then": {
+            "oneOf": [
+              {
+                "required": [
+                  "owner_service_principal_id"
+                ],
+                "not": {
+                  "required": [
+                    "installation_id"
+                  ]
+                }
+              },
+              {
+                "required": [
+                  "installation_id"
+                ],
+                "not": {
+                  "required": [
+                    "owner_service_principal_id"
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "SecOAuthAppView": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "created_at": {
+          "$ref": "#/$defs/SecTimestamp"
+        },
+        "updated_at": {
+          "$ref": "#/$defs/SecTimestamp"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "client_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "owner_group_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "client_type": {
+          "type": "string",
+          "enum": [
+            "public",
+            "confidential"
+          ]
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "redirect_uris": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048,
+            "format": "uri"
+          },
+          "minItems": 0,
+          "maxItems": 32,
+          "uniqueItems": true
+        },
+        "grant_types": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "minItems": 0,
+          "maxItems": 4,
+          "uniqueItems": true
+        },
+        "allowed_scopes": {
+          "$ref": "#/$defs/SecCapabilities"
+        },
+        "allowed_resources": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048,
+            "format": "uri"
+          },
+          "minItems": 0,
+          "maxItems": 16,
+          "uniqueItems": true
+        },
+        "token_endpoint_auth_method": {
+          "type": "string",
+          "enum": [
+            "none",
+            "private_key_jwt",
+            "client_secret_basic"
+          ]
+        },
+        "jwks_key_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "minItems": 0,
+          "maxItems": 5,
+          "uniqueItems": true
+        },
+        "owner_service_principal_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SecId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "installation_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SecId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "secret_delivery_receipt_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SecId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "tenant_id",
+        "id",
+        "version",
+        "created_at",
+        "updated_at",
+        "name",
+        "client_id",
+        "owner_group_id",
+        "client_type",
+        "active",
+        "redirect_uris",
+        "grant_types",
+        "allowed_scopes",
+        "allowed_resources",
+        "token_endpoint_auth_method",
+        "jwks_key_ids",
+        "owner_service_principal_id",
+        "installation_id",
+        "secret_delivery_receipt_id"
+      ]
+    },
+    "SecOAuthRevoke": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "expected_version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "reason": {
+          "$ref": "#/$defs/SecReason"
+        }
+      },
+      "required": [
+        "expected_version",
+        "reason"
+      ]
+    },
+    "SecFeaturePolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "data_class": {
+          "type": "string",
+          "enum": [
+            "git",
+            "lfs",
+            "repository_metadata",
+            "issues",
+            "pull_requests",
+            "reviews",
+            "comments",
+            "labels",
+            "milestones",
+            "releases",
+            "attachments",
+            "wiki",
+            "projects",
+            "discussions",
+            "packages",
+            "governance",
+            "identities",
+            "workflow_files",
+            "run_history",
+            "check_history",
+            "integration_metadata",
+            "secret_metadata",
+            "variables",
+            "security_alerts"
+          ]
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "required",
+            "optional",
+            "skip"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 2048
+        }
+      },
+      "required": [
+        "data_class",
+        "mode"
+      ]
+    },
+    "SecDestinationMapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source_repository_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "namespace_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "destination_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "pattern": "^[A-Za-z0-9_.-]+$"
+        },
+        "visibility": {
+          "type": "string",
+          "enum": [
+            "private",
+            "internal",
+            "public"
+          ]
+        },
+        "existing_repository_id": {
+          "$ref": "#/$defs/SecId"
+        }
+      },
+      "required": [
+        "source_repository_id",
+        "namespace_id",
+        "destination_name",
+        "visibility"
+      ]
+    },
+    "SecCutoverPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": [
+            "automatic_when_valid",
+            "administrator"
+          ]
+        },
+        "source_consistency": {
+          "type": "string",
+          "enum": [
+            "write_freeze",
+            "best_effort_with_warning"
+          ]
+        },
+        "allow_source_mutation": {
+          "type": "boolean"
+        },
+        "approved_source_action_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SecId"
+          },
+          "minItems": 0,
+          "maxItems": 100,
+          "uniqueItems": true
+        },
+        "activation_visibility": {
+          "type": "string",
+          "enum": [
+            "all_selected_ready",
+            "per_repository"
+          ]
+        }
+      },
+      "required": [
+        "mode",
+        "source_consistency",
+        "allow_source_mutation",
+        "approved_source_action_ids",
+        "activation_visibility"
+      ]
+    },
+    "SecMigrationPlanRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source_connection_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "source_organization_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "minItems": 1,
+          "maxItems": 1000,
+          "uniqueItems": true
+        },
+        "selection_mode": {
+          "type": "string",
+          "enum": [
+            "all_visible",
+            "explicit_repositories"
+          ]
+        },
+        "source_repository_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "minItems": 0,
+          "maxItems": 10000,
+          "uniqueItems": true
+        },
+        "destination_namespace_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "destination_mappings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SecDestinationMapping"
+          },
+          "minItems": 0,
+          "maxItems": 10000,
+          "uniqueItems": true
+        },
+        "identity_policy": {
+          "type": "string",
+          "enum": [
+            "directory_verified_only",
+            "approved_mapping_file"
+          ]
+        },
+        "identity_mapping_artifact_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "feature_policies": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SecFeaturePolicy"
+          },
+          "minItems": 0,
+          "maxItems": 32,
+          "uniqueItems": true
+        },
+        "cutover_policy": {
+          "$ref": "#/$defs/SecCutoverPolicy"
+        },
+        "existing_destination_policy": {
+          "type": "string",
+          "enum": [
+            "block_collisions",
+            "approved_renumber_plan"
+          ]
+        },
+        "raw_export_retention_days": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3650
+        },
+        "reason": {
+          "$ref": "#/$defs/SecReason"
+        }
+      },
+      "required": [
+        "source_connection_id",
+        "source_organization_ids",
+        "selection_mode",
+        "destination_namespace_id",
+        "identity_policy",
+        "cutover_policy",
+        "existing_destination_policy",
+        "raw_export_retention_days",
+        "reason"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "selection_mode": {
+                "const": "explicit_repositories"
+              }
+            },
+            "required": [
+              "selection_mode"
+            ]
+          },
+          "then": {
+            "required": [
+              "source_repository_ids"
+            ],
+            "properties": {
+              "source_repository_ids": {
+                "minItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "identity_policy": {
+                "const": "approved_mapping_file"
+              }
+            },
+            "required": [
+              "identity_policy"
+            ]
+          },
+          "then": {
+            "required": [
+              "identity_mapping_artifact_id"
+            ]
+          }
+        }
+      ]
+    },
+    "SecMigrationStart": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "plan_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "plan_digest": {
+          "$ref": "#/$defs/SecDigest"
+        },
+        "expected_plan_version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "preflight_report_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "approval_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SecId"
+          },
+          "minItems": 0,
+          "maxItems": 32,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "plan_id",
+        "plan_digest",
+        "expected_plan_version",
+        "preflight_report_id",
+        "approval_ids"
+      ]
+    },
+    "SecMigrationResume": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "expected_version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "plan_digest": {
+          "$ref": "#/$defs/SecDigest"
+        },
+        "checkpoint_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "remediation_artifact_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SecId"
+          },
+          "minItems": 0,
+          "maxItems": 100,
+          "uniqueItems": true
+        },
+        "reason": {
+          "$ref": "#/$defs/SecReason"
+        }
+      },
+      "required": [
+        "expected_version",
+        "plan_digest",
+        "reason"
+      ]
+    },
+    "SecMigrationCutover": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "expected_version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "plan_digest": {
+          "$ref": "#/$defs/SecDigest"
+        },
+        "report_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "report_digest": {
+          "$ref": "#/$defs/SecDigest"
+        },
+        "expected_policy_epoch": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "identity_map_digest": {
+          "$ref": "#/$defs/SecDigest"
+        },
+        "source_final_watermark": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "source_freeze_evidence_artifact_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "approval_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SecId"
+          },
+          "minItems": 0,
+          "maxItems": 32,
+          "uniqueItems": true
+        },
+        "reason": {
+          "$ref": "#/$defs/SecReason"
+        }
+      },
+      "required": [
+        "expected_version",
+        "plan_digest",
+        "report_id",
+        "report_digest",
+        "expected_policy_epoch",
+        "identity_map_digest",
+        "source_final_watermark",
+        "approval_ids",
+        "reason"
+      ]
+    },
+    "SecMigrationCancel": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "expected_version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "reason": {
+          "$ref": "#/$defs/SecReason"
+        },
+        "staging_retention": {
+          "type": "string",
+          "enum": [
+            "retain_until_policy_expiry",
+            "request_cleanup"
+          ]
+        }
+      },
+      "required": [
+        "expected_version",
+        "reason",
+        "staging_retention"
+      ]
+    },
+    "SecMigrationGap": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "data_missing",
+            "identity_unresolved",
+            "permission_widening",
+            "permission_narrowing",
+            "unsupported_feature",
+            "secret_replacement",
+            "source_unobservable",
+            "provider_constraint",
+            "integration_reconnect",
+            "source_changed"
+          ]
+        },
+        "severity": {
+          "type": "string",
+          "enum": [
+            "blocking",
+            "warning",
+            "informational"
+          ]
+        },
+        "resource": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SecResource"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source_resource_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "requirement": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "remediation": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 4096
+        },
+        "disposition": {
+          "type": "string",
+          "enum": [
+            "open",
+            "resolved",
+            "approved_restriction",
+            "approved_optional_omission"
+          ]
+        },
+        "approval_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SecId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "category",
+        "severity",
+        "resource",
+        "source_resource_id",
+        "requirement",
+        "remediation",
+        "disposition",
+        "approval_id"
+      ]
+    },
+    "SecMigrationValidationCheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "inventory",
+            "git",
+            "assets",
+            "collaboration",
+            "identity",
+            "permissions",
+            "governance",
+            "ci",
+            "cutover"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "passed",
+            "failed",
+            "unknown",
+            "approved_exception"
+          ]
+        },
+        "checked_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000000
+        },
+        "difference_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000000
+        },
+        "evidence_artifact_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SecId"
+          },
+          "minItems": 0,
+          "maxItems": 1000,
+          "uniqueItems": true
+        },
+        "detail": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 4096
+        }
+      },
+      "required": [
+        "id",
+        "category",
+        "status",
+        "checked_count",
+        "difference_count",
+        "evidence_artifact_ids",
+        "detail"
+      ]
+    },
+    "SecMigrationReport": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "created_at": {
+          "$ref": "#/$defs/SecTimestamp"
+        },
+        "updated_at": {
+          "$ref": "#/$defs/SecTimestamp"
+        },
+        "run_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "plan_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "plan_digest": {
+          "$ref": "#/$defs/SecDigest"
+        },
+        "report_digest": {
+          "$ref": "#/$defs/SecDigest"
+        },
+        "source_manifest_digest": {
+          "$ref": "#/$defs/SecDigest"
+        },
+        "destination_manifest_digest": {
+          "$ref": "#/$defs/SecDigest"
+        },
+        "identity_map_digest": {
+          "$ref": "#/$defs/SecDigest"
+        },
+        "policy_epoch": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "source_final_watermark": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "verdict": {
+          "type": "string",
+          "enum": [
+            "blocked",
+            "passed_with_approved_restrictions",
+            "passed"
+          ]
+        },
+        "checks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SecMigrationValidationCheck"
+          },
+          "minItems": 0,
+          "maxItems": 10000,
+          "uniqueItems": true
+        },
+        "gaps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SecMigrationGap"
+          },
+          "minItems": 0,
+          "maxItems": 10000,
+          "uniqueItems": true
+        },
+        "permission_widening_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000000
+        },
+        "complete_source_observation": {
+          "type": "boolean"
+        },
+        "activation_eligible": {
+          "type": "boolean"
+        },
+        "approval_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SecId"
+          },
+          "minItems": 0,
+          "maxItems": 1000,
+          "uniqueItems": true
+        },
+        "export_artifact_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SecId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "checks_total": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000000
+        },
+        "gaps_total": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000000
+        },
+        "checks_truncated": {
+          "type": "boolean"
+        },
+        "gaps_truncated": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "tenant_id",
+        "id",
+        "version",
+        "created_at",
+        "updated_at",
+        "run_id",
+        "plan_id",
+        "plan_digest",
+        "report_digest",
+        "source_manifest_digest",
+        "destination_manifest_digest",
+        "identity_map_digest",
+        "policy_epoch",
+        "source_final_watermark",
+        "verdict",
+        "checks",
+        "gaps",
+        "permission_widening_count",
+        "complete_source_observation",
+        "activation_eligible",
+        "approval_ids",
+        "export_artifact_id",
+        "checks_total",
+        "gaps_total",
+        "checks_truncated",
+        "gaps_truncated"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "anyOf": [
+              {
+                "properties": {
+                  "checks_truncated": {
+                    "const": true
+                  }
+                },
+                "required": [
+                  "checks_truncated"
+                ]
+              },
+              {
+                "properties": {
+                  "gaps_truncated": {
+                    "const": true
+                  }
+                },
+                "required": [
+                  "gaps_truncated"
+                ]
+              }
+            ]
+          },
+          "then": {
+            "properties": {
+              "export_artifact_id": {
+                "$ref": "#/$defs/SecId"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "SecMigrationProgress": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tasks_finished": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000000
+        },
+        "tasks_total": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000000000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "repositories_finished": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000000
+        },
+        "repositories_total": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000000
+        },
+        "bytes_transferred": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "blocking_gap_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000000
+        },
+        "rate_limited_until": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SecTimestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "tasks_finished",
+        "tasks_total",
+        "repositories_finished",
+        "repositories_total",
+        "bytes_transferred",
+        "blocking_gap_count",
+        "rate_limited_until"
+      ]
+    },
+    "SecMigrationView": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "created_at": {
+          "$ref": "#/$defs/SecTimestamp"
+        },
+        "updated_at": {
+          "$ref": "#/$defs/SecTimestamp"
+        },
+        "plan_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "plan_digest": {
+          "$ref": "#/$defs/SecDigest"
+        },
+        "source_connection_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "phase": {
+          "type": "string",
+          "enum": [
+            "preflight",
+            "copying",
+            "reconciling",
+            "validating",
+            "awaiting_remediation",
+            "cutover_ready",
+            "delta_sync",
+            "activating",
+            "active",
+            "cleanup"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "queued",
+            "running",
+            "paused",
+            "blocked",
+            "recoverable_failed",
+            "fatal_failed",
+            "cancelling",
+            "cancelled",
+            "succeeded"
+          ]
+        },
+        "operation_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "progress": {
+          "$ref": "#/$defs/SecMigrationProgress"
+        },
+        "checkpoint_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SecId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "report_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SecId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source_final_watermark": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "retry_after_seconds": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 86400
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "tenant_id",
+        "id",
+        "version",
+        "created_at",
+        "updated_at",
+        "plan_id",
+        "plan_digest",
+        "source_connection_id",
+        "phase",
+        "status",
+        "operation_id",
+        "progress",
+        "checkpoint_id",
+        "report_id",
+        "source_final_watermark",
+        "retry_after_seconds"
+      ]
+    },
+    "SecSecretScope": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "tenant",
+            "repository",
+            "environment"
+          ]
+        },
+        "repository_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SecId"
+          },
+          "minItems": 0,
+          "maxItems": 1000,
+          "uniqueItems": true
+        },
+        "environment_id": {
+          "$ref": "#/$defs/SecId"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "repository"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "repository_ids"
+            ],
+            "properties": {
+              "repository_ids": {
+                "minItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "environment"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "environment_id"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "tenant"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "repository_ids"
+                  ]
+                },
+                {
+                  "required": [
+                    "environment_id"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "repository"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "not": {
+              "required": [
+                "environment_id"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "environment"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "not": {
+              "required": [
+                "repository_ids"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "SecSecretMetadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "created_at": {
+          "$ref": "#/$defs/SecTimestamp"
+        },
+        "updated_at": {
+          "$ref": "#/$defs/SecTimestamp"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Z_][A-Z0-9_]*$"
+        },
+        "scope": {
+          "$ref": "#/$defs/SecSecretScope"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "placeholder",
+            "ready",
+            "revoking",
+            "deleted"
+          ]
+        },
+        "secret_version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "has_value": {
+          "type": "boolean"
+        },
+        "last_rotated_at": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SecTimestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "allowed_workflow_paths": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "minItems": 0,
+          "maxItems": 256,
+          "uniqueItems": true
+        },
+        "allowed_job_capabilities": {
+          "$ref": "#/$defs/SecCapabilities"
+        }
+      },
+      "required": [
+        "tenant_id",
+        "id",
+        "version",
+        "created_at",
+        "updated_at",
+        "name",
+        "scope",
+        "state",
+        "secret_version",
+        "has_value",
+        "last_rotated_at",
+        "allowed_workflow_paths",
+        "allowed_job_capabilities"
+      ]
+    },
+    "SecSecretSet": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Z_][A-Z0-9_]*$"
+        },
+        "scope": {
+          "$ref": "#/$defs/SecSecretScope"
+        },
+        "value": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "value_from_secret_handle": {
+          "$ref": "#/$defs/SecId"
+        },
+        "allowed_workflow_paths": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "minItems": 0,
+          "maxItems": 256,
+          "uniqueItems": true
+        },
+        "allowed_job_capabilities": {
+          "$ref": "#/$defs/SecCapabilities"
+        },
+        "reason": {
+          "$ref": "#/$defs/SecReason"
+        }
+      },
+      "required": [
+        "name",
+        "scope",
+        "allowed_workflow_paths",
+        "allowed_job_capabilities",
+        "reason"
+      ],
+      "oneOf": [
+        {
+          "required": [
+            "value"
+          ],
+          "not": {
+            "required": [
+              "value_from_secret_handle"
+            ]
+          }
+        },
+        {
+          "required": [
+            "value_from_secret_handle"
+          ],
+          "not": {
+            "required": [
+              "value"
+            ]
+          }
+        }
+      ]
+    },
+    "SecSecretDelete": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "expected_version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "reason": {
+          "$ref": "#/$defs/SecReason"
+        }
+      },
+      "required": [
+        "expected_version",
+        "reason"
+      ]
+    },
+    "SecSourceConnectionRegister": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "source_kind": {
+          "type": "string",
+          "enum": [
+            "github_cloud",
+            "github_enterprise_server"
+          ]
+        },
+        "identity_profile": {
+          "type": "string",
+          "enum": [
+            "ordinary_organization",
+            "enterprise_managed_users"
+          ]
+        },
+        "api_base": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "format": "uri"
+        },
+        "git_base": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "format": "uri"
+        },
+        "organization_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "minItems": 1,
+          "maxItems": 1000,
+          "uniqueItems": true
+        },
+        "api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "authentication_mode": {
+          "type": "string",
+          "enum": [
+            "github_app_installation",
+            "approved_token_handle",
+            "export_connector"
+          ]
+        },
+        "installation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "credential_handle": {
+          "$ref": "#/$defs/SecId"
+        },
+        "export_connector_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "qualification_report_id": {
+          "$ref": "#/$defs/SecId"
+        }
+      },
+      "required": [
+        "name",
+        "source_kind",
+        "identity_profile",
+        "api_base",
+        "git_base",
+        "organization_ids",
+        "api_version",
+        "authentication_mode",
+        "qualification_report_id"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "authentication_mode": {
+                "const": "github_app_installation"
+              }
+            },
+            "required": [
+              "authentication_mode"
+            ]
+          },
+          "then": {
+            "required": [
+              "installation_id"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "authentication_mode": {
+                "const": "approved_token_handle"
+              }
+            },
+            "required": [
+              "authentication_mode"
+            ]
+          },
+          "then": {
+            "required": [
+              "credential_handle"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "authentication_mode": {
+                "const": "export_connector"
+              }
+            },
+            "required": [
+              "authentication_mode"
+            ]
+          },
+          "then": {
+            "required": [
+              "export_connector_id"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "authentication_mode": {
+                "const": "github_app_installation"
+              }
+            },
+            "required": [
+              "authentication_mode"
+            ]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "credential_handle"
+                  ]
+                },
+                {
+                  "required": [
+                    "export_connector_id"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "authentication_mode": {
+                "const": "approved_token_handle"
+              }
+            },
+            "required": [
+              "authentication_mode"
+            ]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "installation_id"
+                  ]
+                },
+                {
+                  "required": [
+                    "export_connector_id"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "authentication_mode": {
+                "const": "export_connector"
+              }
+            },
+            "required": [
+              "authentication_mode"
+            ]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "installation_id"
+                  ]
+                },
+                {
+                  "required": [
+                    "credential_handle"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "SecSourceConnectionView": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "created_at": {
+          "$ref": "#/$defs/SecTimestamp"
+        },
+        "updated_at": {
+          "$ref": "#/$defs/SecTimestamp"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "source_kind": {
+          "type": "string",
+          "enum": [
+            "github_cloud",
+            "github_enterprise_server"
+          ]
+        },
+        "identity_profile": {
+          "type": "string",
+          "enum": [
+            "ordinary_organization",
+            "enterprise_managed_users"
+          ]
+        },
+        "api_base": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "format": "uri"
+        },
+        "git_base": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "format": "uri"
+        },
+        "organization_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "minItems": 1,
+          "maxItems": 1000,
+          "uniqueItems": true
+        },
+        "api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "authentication_mode": {
+          "type": "string",
+          "enum": [
+            "github_app_installation",
+            "approved_token_handle",
+            "export_connector"
+          ]
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "qualifying",
+            "active",
+            "suspended",
+            "revoked"
+          ]
+        },
+        "granted_source_scopes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "minItems": 0,
+          "maxItems": 256,
+          "uniqueItems": true
+        },
+        "qualification_report_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "source_fingerprint": {
+          "$ref": "#/$defs/SecDigest"
+        }
+      },
+      "required": [
+        "tenant_id",
+        "id",
+        "version",
+        "created_at",
+        "updated_at",
+        "name",
+        "source_kind",
+        "identity_profile",
+        "api_base",
+        "git_base",
+        "organization_ids",
+        "api_version",
+        "authentication_mode",
+        "state",
+        "granted_source_scopes",
+        "qualification_report_id",
+        "source_fingerprint"
+      ]
+    },
+    "SecIdentityConnectionConfigure": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "existing_access_application_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "cf_account_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "cf_idp_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "access_team_domain": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 253
+        },
+        "access_audience": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "provider_kind": {
+          "type": "string",
+          "enum": [
+            "saml",
+            "oidc"
+          ]
+        },
+        "directory_namespace": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "immutable_subject_claim": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "connection_marker_claim": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "scim_mode": {
+          "type": "string",
+          "enum": [
+            "dual_destination",
+            "qualified_connector"
+          ]
+        },
+        "directory_connector_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "qualification_report_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "approval_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SecId"
+          },
+          "minItems": 0,
+          "maxItems": 16,
+          "uniqueItems": true
+        },
+        "reason": {
+          "$ref": "#/$defs/SecReason"
+        }
+      },
+      "required": [
+        "existing_access_application_id",
+        "cf_account_id",
+        "cf_idp_id",
+        "access_team_domain",
+        "access_audience",
+        "provider_kind",
+        "directory_namespace",
+        "immutable_subject_claim",
+        "connection_marker_claim",
+        "scim_mode",
+        "qualification_report_id",
+        "approval_ids",
+        "reason"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "scim_mode": {
+                "const": "qualified_connector"
+              }
+            },
+            "required": [
+              "scim_mode"
+            ]
+          },
+          "then": {
+            "required": [
+              "directory_connector_id"
+            ]
+          }
+        }
+      ]
+    },
+    "SecIdentityConnectionView": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "created_at": {
+          "$ref": "#/$defs/SecTimestamp"
+        },
+        "updated_at": {
+          "$ref": "#/$defs/SecTimestamp"
+        },
+        "existing_access_application_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "cf_account_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "cf_idp_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "access_team_domain": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 253
+        },
+        "access_audience": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "provider_kind": {
+          "type": "string",
+          "enum": [
+            "saml",
+            "oidc"
+          ]
+        },
+        "directory_namespace": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "immutable_subject_claim": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "connection_marker_claim": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "scim_mode": {
+          "type": "string",
+          "enum": [
+            "dual_destination",
+            "qualified_connector"
+          ]
+        },
+        "directory_connector_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SecId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "provisioning",
+            "active",
+            "suspended",
+            "revoked"
+          ]
+        },
+        "qualification_report_id": {
+          "$ref": "#/$defs/SecId"
+        }
+      },
+      "required": [
+        "tenant_id",
+        "id",
+        "version",
+        "created_at",
+        "updated_at",
+        "existing_access_application_id",
+        "cf_account_id",
+        "cf_idp_id",
+        "access_team_domain",
+        "access_audience",
+        "provider_kind",
+        "directory_namespace",
+        "immutable_subject_claim",
+        "connection_marker_claim",
+        "scim_mode",
+        "directory_connector_id",
+        "state",
+        "qualification_report_id"
+      ]
+    },
+    "SecOAuthConnectionBegin": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "installation_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "provider_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "grant_owner_kind": {
+          "type": "string",
+          "enum": [
+            "human",
+            "tenant_service"
+          ]
+        },
+        "owner_service_principal_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "requested_provider_scopes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "minItems": 0,
+          "maxItems": 128,
+          "uniqueItems": true
+        },
+        "return_path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        }
+      },
+      "required": [
+        "installation_id",
+        "provider_id",
+        "grant_owner_kind",
+        "requested_provider_scopes",
+        "return_path"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "grant_owner_kind": {
+                "const": "tenant_service"
+              }
+            },
+            "required": [
+              "grant_owner_kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "owner_service_principal_id"
+            ]
+          }
+        }
+      ]
+    },
+    "SecOAuthAuthorizationStart": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "transaction_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "authorization_url": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "format": "uri"
+        },
+        "expires_at": {
+          "$ref": "#/$defs/SecTimestamp"
+        },
+        "provider_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "installation_id": {
+          "$ref": "#/$defs/SecId"
+        }
+      },
+      "required": [
+        "transaction_id",
+        "authorization_url",
+        "expires_at",
+        "provider_id",
+        "installation_id"
+      ]
+    },
+    "SecOAuthConnectionView": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "created_at": {
+          "$ref": "#/$defs/SecTimestamp"
+        },
+        "updated_at": {
+          "$ref": "#/$defs/SecTimestamp"
+        },
+        "installation_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "provider_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "grant_owner_kind": {
+          "type": "string",
+          "enum": [
+            "human",
+            "tenant_service"
+          ]
+        },
+        "owner_principal_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "provider_subject_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "provider_scopes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "minItems": 0,
+          "maxItems": 128,
+          "uniqueItems": true
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "authorizing",
+            "active",
+            "revoking",
+            "revocation_remediation",
+            "revoked"
+          ]
+        },
+        "expires_at": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SecTimestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "last_used_at": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SecTimestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "tenant_id",
+        "id",
+        "version",
+        "created_at",
+        "updated_at",
+        "installation_id",
+        "provider_id",
+        "grant_owner_kind",
+        "owner_principal_id",
+        "provider_subject_id",
+        "provider_scopes",
+        "state",
+        "expires_at",
+        "last_used_at"
+      ]
+    },
+    "SecSecretRegister": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Z_][A-Z0-9_]*$"
+        },
+        "scope": {
+          "$ref": "#/$defs/SecSecretScope"
+        },
+        "allowed_workflow_paths": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "minItems": 0,
+          "maxItems": 256,
+          "uniqueItems": true
+        },
+        "allowed_job_capabilities": {
+          "$ref": "#/$defs/SecCapabilities"
+        },
+        "reason": {
+          "$ref": "#/$defs/SecReason"
+        }
+      },
+      "required": [
+        "name",
+        "scope",
+        "allowed_workflow_paths",
+        "allowed_job_capabilities",
+        "reason"
+      ]
+    },
+    "SecMigrationPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "created_at": {
+          "$ref": "#/$defs/SecTimestamp"
+        },
+        "updated_at": {
+          "$ref": "#/$defs/SecTimestamp"
+        },
+        "request": {
+          "$ref": "#/$defs/SecMigrationPlanRequest"
+        },
+        "plan_digest": {
+          "$ref": "#/$defs/SecDigest"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "draft",
+            "preflighting",
+            "blocked",
+            "ready",
+            "superseded"
+          ]
+        },
+        "source_manifest_artifact_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SecId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "preflight_report_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SecId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "selected_repository_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000000
+        },
+        "approval_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SecId"
+          },
+          "minItems": 0,
+          "maxItems": 1000,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "tenant_id",
+        "id",
+        "version",
+        "created_at",
+        "updated_at",
+        "request",
+        "plan_digest",
+        "state",
+        "source_manifest_artifact_id",
+        "preflight_report_id",
+        "selected_repository_count",
+        "approval_ids"
+      ]
+    },
+    "SecMigrationReportArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "created_at": {
+          "$ref": "#/$defs/SecTimestamp"
+        },
+        "updated_at": {
+          "$ref": "#/$defs/SecTimestamp"
+        },
+        "run_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "plan_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "plan_digest": {
+          "$ref": "#/$defs/SecDigest"
+        },
+        "report_digest": {
+          "$ref": "#/$defs/SecDigest"
+        },
+        "source_manifest_digest": {
+          "$ref": "#/$defs/SecDigest"
+        },
+        "destination_manifest_digest": {
+          "$ref": "#/$defs/SecDigest"
+        },
+        "identity_map_digest": {
+          "$ref": "#/$defs/SecDigest"
+        },
+        "policy_epoch": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "source_final_watermark": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "verdict": {
+          "type": "string",
+          "enum": [
+            "blocked",
+            "passed_with_approved_restrictions",
+            "passed"
+          ]
+        },
+        "checks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SecMigrationValidationCheck"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "gaps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SecMigrationGap"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "permission_widening_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000000
+        },
+        "complete_source_observation": {
+          "type": "boolean"
+        },
+        "activation_eligible": {
+          "type": "boolean"
+        },
+        "approval_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SecId"
+          },
+          "minItems": 0,
+          "maxItems": 1000,
+          "uniqueItems": true
+        },
+        "export_artifact_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SecId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "checks_total": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000000
+        },
+        "gaps_total": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000000
+        },
+        "checks_truncated": {
+          "const": false
+        },
+        "gaps_truncated": {
+          "const": false
+        }
+      },
+      "required": [
+        "tenant_id",
+        "id",
+        "version",
+        "created_at",
+        "updated_at",
+        "run_id",
+        "plan_id",
+        "plan_digest",
+        "report_digest",
+        "source_manifest_digest",
+        "destination_manifest_digest",
+        "identity_map_digest",
+        "policy_epoch",
+        "source_final_watermark",
+        "verdict",
+        "checks",
+        "gaps",
+        "permission_widening_count",
+        "complete_source_observation",
+        "activation_eligible",
+        "approval_ids",
+        "export_artifact_id",
+        "checks_total",
+        "gaps_total",
+        "checks_truncated",
+        "gaps_truncated"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "anyOf": [
+              {
+                "properties": {
+                  "checks_truncated": {
+                    "const": true
+                  }
+                },
+                "required": [
+                  "checks_truncated"
+                ]
+              },
+              {
+                "properties": {
+                  "gaps_truncated": {
+                    "const": true
+                  }
+                },
+                "required": [
+                  "gaps_truncated"
+                ]
+              }
+            ]
+          },
+          "then": {
+            "properties": {
+              "export_artifact_id": {
+                "$ref": "#/$defs/SecId"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "SecRoleCreate": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "description": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 2048
+        },
+        "base_role": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "read",
+                "triage",
+                "write",
+                "maintain",
+                "admin"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "capabilities": {
+          "$ref": "#/$defs/SecCapabilities"
+        },
+        "reason": {
+          "$ref": "#/$defs/SecReason"
+        }
+      },
+      "required": [
+        "name",
+        "description",
+        "base_role",
+        "capabilities",
+        "reason"
+      ]
+    },
+    "SecRoleEdit": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "description": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 2048
+        },
+        "capabilities": {
+          "$ref": "#/$defs/SecCapabilities"
+        },
+        "reason": {
+          "$ref": "#/$defs/SecReason"
+        }
+      },
+      "required": [
+        "reason"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "name"
+          ]
+        },
+        {
+          "required": [
+            "description"
+          ]
+        },
+        {
+          "required": [
+            "capabilities"
+          ]
+        }
+      ]
+    },
+    "SecRoleView": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "created_at": {
+          "$ref": "#/$defs/SecTimestamp"
+        },
+        "updated_at": {
+          "$ref": "#/$defs/SecTimestamp"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "description": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 2048
+        },
+        "base_role": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "read",
+                "triage",
+                "write",
+                "maintain",
+                "admin"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "capabilities": {
+          "$ref": "#/$defs/SecCapabilities"
+        },
+        "builtin": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "tenant_id",
+        "id",
+        "version",
+        "created_at",
+        "updated_at",
+        "name",
+        "description",
+        "base_role",
+        "capabilities",
+        "builtin"
+      ]
+    },
+    "SecRoleDelete": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "expected_version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "replacement_role_id": {
+          "$ref": "#/$defs/SecId"
+        },
+        "reason": {
+          "$ref": "#/$defs/SecReason"
+        }
+      },
+      "required": [
+        "expected_version",
+        "reason"
+      ]
+    },
+    "SecGrantView": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "subject_kind": {
+          "type": "string",
+          "enum": [
+            "group",
+            "service",
+            "tenant_role",
+            "recovery_human"
+          ]
+        },
+        "subject_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "resource_kind": {
+          "type": "string",
+          "enum": [
+            "tenant",
+            "repository",
+            "environment"
+          ]
+        },
+        "resource_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "read",
+            "triage",
+            "write",
+            "maintain",
+            "admin",
+            "owner",
+            "custom"
+          ]
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "expires_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "role_id": {
+          "$ref": "#/$defs/SecId"
+        }
+      },
+      "required": [
+        "tenant_id",
+        "id",
+        "version",
+        "created_at",
+        "updated_at",
+        "subject_kind",
+        "subject_id",
+        "resource_kind",
+        "resource_id",
+        "role",
+        "capabilities",
+        "expires_at",
+        "role_id"
+      ]
+    }
+  },
+  "operationMappings": {
+    "tenant.view": {
+      "response": "SecTenantView"
+    },
+    "tenant.configure": {
+      "request": "SecTenantConfigure",
+      "response": "SecTenantView",
+      "capability": "tenant.settings.manage"
+    },
+    "agent.create": {
+      "request": "SecAgentCreate",
+      "response": "SecAgentView",
+      "capability": "service.identity.manage"
+    },
+    "agent.revoke": {
+      "request": "SecAgentRevoke",
+      "response": "Operation",
+      "capability": "service.identity.manage"
+    },
+    "auth.whoami": {
+      "response": "Actor"
+    },
+    "directory.sync": {
+      "request": "SecDirectorySync",
+      "response": "Operation",
+      "capability": "identity.lifecycle.manage"
+    },
+    "directory.members": {
+      "response": "Page",
+      "pageItem": "SecDirectoryMemberView"
+    },
+    "directory.deactivate": {
+      "request": "SecDirectoryDeactivate",
+      "response": "Operation",
+      "capability": "identity.lifecycle.manage"
+    },
+    "group.list": {
+      "response": "Page",
+      "pageItem": "Group"
+    },
+    "group.view": {
+      "response": "Group"
+    },
+    "group.create": {
+      "request": "SecGroupCreate",
+      "response": "Group",
+      "capability": "identity.groups.map"
+    },
+    "group.edit": {
+      "request": "SecGroupEdit",
+      "response": "Group",
+      "capability": "identity.groups.map"
+    },
+    "group.delete": {
+      "response": "Operation",
+      "capability": "identity.groups.map"
+    },
+    "grant.list": {
+      "response": "Page",
+      "pageItem": "SecGrantView"
+    },
+    "grant.view": {
+      "response": "SecGrantView"
+    },
+    "grant.create": {
+      "request": "SecGrantCreate",
+      "response": "SecGrantView",
+      "capability": "permission.grants.manage"
+    },
+    "grant.edit": {
+      "request": "SecGrantEdit",
+      "response": "SecGrantView",
+      "capability": "permission.grants.manage"
+    },
+    "grant.delete": {
+      "response": "Operation",
+      "capability": "permission.grants.manage"
+    },
+    "permission.explain": {
+      "request": "SecPermissionExplain",
+      "response": "SecPermissionDecision",
+      "capability": "permission.explain"
+    },
+    "permission.simulate": {
+      "request": "SecPermissionSimulate",
+      "response": "SecPermissionSimulation",
+      "capability": "permission.simulate"
+    },
+    "oauth.apps": {
+      "response": "Page",
+      "pageItem": "SecOAuthAppView",
+      "capability": "oauth.apps.manage"
+    },
+    "oauth.register": {
+      "request": "SecOAuthRegister",
+      "response": "SecOAuthAppView",
+      "capability": "oauth.apps.manage"
+    },
+    "oauth.revoke": {
+      "request": "SecOAuthRevoke",
+      "response": "Operation",
+      "capability": "oauth.grants.revoke"
+    },
+    "migration.plan": {
+      "request": "SecMigrationPlanRequest",
+      "response": "Operation",
+      "capability": "migration.launch"
+    },
+    "migration.start": {
+      "request": "SecMigrationStart",
+      "response": "Operation",
+      "capability": "migration.launch"
+    },
+    "migration.view": {
+      "response": "SecMigrationView",
+      "capability": "migration.read"
+    },
+    "migration.resume": {
+      "request": "SecMigrationResume",
+      "response": "Operation",
+      "capability": "migration.launch"
+    },
+    "migration.report": {
+      "response": "SecMigrationReport",
+      "capability": "migration.read"
+    },
+    "migration.cutover": {
+      "request": "SecMigrationCutover",
+      "response": "Operation",
+      "capability": "migration.activate"
+    },
+    "migration.cancel": {
+      "request": "SecMigrationCancel",
+      "response": "Operation",
+      "capability": "migration.launch"
+    },
+    "secret.list": {
+      "response": "Page",
+      "pageItem": "SecSecretMetadata"
+    },
+    "secret.set": {
+      "request": "SecSecretSet",
+      "response": "SecSecretMetadata"
+    },
+    "secret.delete": {
+      "request": "SecSecretDelete",
+      "response": "Operation"
+    },
+    "source.list": {
+      "response": "Page",
+      "pageItem": "SecSourceConnectionView",
+      "capability": "migration.source.read"
+    },
+    "source.connect": {
+      "request": "SecSourceConnectionRegister",
+      "response": "SecSourceConnectionView",
+      "capability": "migration.source.manage"
+    },
+    "source.revoke": {
+      "request": "SecExistingAction",
+      "response": "Operation",
+      "capability": "migration.source.manage"
+    },
+    "oauth.connections": {
+      "response": "Page",
+      "pageItem": "SecOAuthConnectionView",
+      "capability": "oauth.connections.manage"
+    },
+    "oauth.connect": {
+      "request": "SecOAuthConnectionBegin",
+      "response": "SecOAuthAuthorizationStart",
+      "capability": "oauth.connections.manage"
+    },
+    "oauth.disconnect": {
+      "request": "SecExistingAction",
+      "response": "Operation",
+      "capability": "oauth.connections.manage"
+    },
+    "secret.register": {
+      "request": "SecSecretRegister",
+      "response": "SecSecretMetadata",
+      "capability": "secret.write"
+    },
+    "idp.list": {
+      "response": "Page",
+      "pageItem": "SecIdentityConnectionView",
+      "capability": "identity.connections.read"
+    },
+    "idp.configure": {
+      "request": "SecIdentityConnectionConfigure",
+      "response": "SecIdentityConnectionView",
+      "capability": "identity.connections.manage"
+    },
+    "idp.revoke": {
+      "request": "SecExistingAction",
+      "response": "Operation",
+      "capability": "identity.connections.manage"
+    },
+    "role.list": {
+      "response": "Page",
+      "pageItem": "SecRoleView",
+      "capability": "role.definitions.read"
+    },
+    "role.view": {
+      "response": "SecRoleView",
+      "capability": "role.definitions.read"
+    },
+    "role.create": {
+      "request": "SecRoleCreate",
+      "response": "SecRoleView",
+      "capability": "role.definitions.manage"
+    },
+    "role.edit": {
+      "request": "SecRoleEdit",
+      "response": "SecRoleView",
+      "capability": "role.definitions.manage"
+    },
+    "role.delete": {
+      "request": "SecRoleDelete",
+      "response": "Operation",
+      "capability": "role.definitions.manage"
+    },
+    "idp.view": {
+      "response": "SecIdentityConnectionView",
+      "capability": "identity.connections.read"
+    },
+    "source.view": {
+      "response": "SecSourceConnectionView",
+      "capability": "migration.source.read"
+    }
+  },
+  "operationResultMappings": {
+    "migration.plan": "SecMigrationPlan",
+    "migration.start": "SecMigrationView",
+    "migration.resume": "SecMigrationView",
+    "migration.cutover": "SecMigrationView",
+    "migration.cancel": "SecMigrationView",
+    "directory.deactivate": "SecDirectoryMemberView",
+    "agent.revoke": "SecAgentView",
+    "secret.delete": "SecSecretMetadata"
+  }
+}

@@ -1,0 +1,25 @@
+[package]
+name = "gitfoundry-mcp-worker"
+edition.workspace = true
+rust-version.workspace = true
+version.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+gitfoundry-catalog.workspace = true
+incurs = { git = "https://github.com/douglance/incurs", rev = "973a77c908982f6da50398e2910226521ec5bf48", package = "incurs", version = "0.11.0", default-features = false }
+incurs-remote.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+async-trait.workspace = true
+futures-util = "0.3"
+incurs-codemode = { git = "https://github.com/douglance/incurs", rev = "973a77c908982f6da50398e2910226521ec5bf48", package = "incurs-codemode", version = "0.9.0" }
+incurs-codemode-cloudflare = { git = "https://github.com/douglance/incurs", rev = "973a77c908982f6da50398e2910226521ec5bf48", package = "incurs-codemode-cloudflare", version = "0.9.0" }
+incurs-mcp-cloudflare = { git = "https://github.com/douglance/incurs", rev = "973a77c908982f6da50398e2910226521ec5bf48", package = "incurs-mcp-cloudflare", version = "0.7.0" }
+wasm-bindgen = "0.2"
+worker = "0.8.5"

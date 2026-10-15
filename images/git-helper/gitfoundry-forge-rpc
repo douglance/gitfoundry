@@ -1,0 +1,96 @@
+#!/usr/bin/env node
+import { spawn } from 'node:child_process';
+import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { webcrypto } from 'node:crypto';
+import { makeGitCliForgePort } from './git-cli.mjs';
+globalThis.crypto ??= webcrypto;
+const methods = new Set(['readRef', 'listRefs', 'readFile', 'listTree', 'writeCommit', 'compareCommits', 'mergeCommits', 'compareAndSwapRef', 'compareAndSwapRefs', 'isAncestor']);
+let workspace;
+let phase = 'input', lastGitError = '';
+let redactions = [];
+try {
+  const chunks = []; let bytes = 0;
+  for await (const chunk of process.stdin) { bytes += chunk.length; if (bytes > 1024 * 1024) throw new Error('RPC frame too large'); chunks.push(chunk); }
+  const frame = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+  if (!methods.has(frame.method) || !Array.isArray(frame.args)) throw new Error('Invalid RPC operation');
+  const remote = new URL(frame.remote);
+  if (remote.protocol !== 'https:' || remote.username || remote.password || remote.search || remote.hash) throw new Error('Invalid canonical remote');
+  if (remote.hostname !== frame.allowed_hostname || !Number.isInteger(frame.expires_at_ms) || frame.expires_at_ms <= Date.now()) throw new Error('Expired or mismatched credential');
+  for (const value of [frame.username, frame.password, frame.proof]) if (typeof value !== 'string' || !value || /[\r\n\0]/.test(value)) throw new Error('Invalid private credential');
+  redactions = [frame.username, frame.password, frame.proof, Buffer.from(frame.username + ':' + frame.password).toString('base64')];
+  phase = 'private_config';
+  workspace = await mkdtemp(join(tmpdir(), 'gitfoundry-forge-rpc-'));
+  const gitDir = join(workspace, 'canonical.git');
+  const config = join(workspace, 'private.gitconfig');
+  await writeFile(config, '[http]\n\tfollowRedirects = false\n\textraHeader = Authorization: Basic ' + Buffer.from(frame.username + ':' + frame.password).toString('base64') + '\n\textraHeader = x-gitfoundry-egress-proof: ' + frame.proof + '\n', { mode: 0o600 });
+  const baseEnv = { PATH: '/usr/local/bin:/usr/bin:/bin', HOME: workspace, LANG: 'C.UTF-8', GIT_TERMINAL_PROMPT: '0', GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_SYSTEM: '/dev/null', GIT_CONFIG_GLOBAL: config };
+  if (process.env.GFY_FORGE_RPC_CA_FILE) baseEnv.GIT_SSL_CAINFO = process.env.GFY_FORGE_RPC_CA_FILE;
+  async function run({ arg, stdin, env: overrides = [] }) {
+    const env = { ...baseEnv };
+    for (const entry of overrides) { const at = entry.indexOf('='); if (at < 1) throw new Error('Invalid Git environment'); env[entry.slice(0, at)] = entry.slice(at + 1); }
+    // The adapter suppresses global config for local object writes. Remote calls use the private config.
+    return new Promise((resolve, reject) => {
+      const child = spawn('/usr/bin/git', ['-c', 'core.hooksPath=/dev/null', '-c', 'gc.auto=0', '-c', 'maintenance.auto=false', '-c', 'protocol.allow=never', '-c', 'protocol.https.allow=always', '-c', 'http.followRedirects=false', ...arg], { env, stdio: ['pipe', 'pipe', 'pipe'] });
+      const stdout = [], stderr = []; let total = 0;
+      child.on('error', reject);
+      for (const [stream, output] of [[child.stdout, stdout], [child.stderr, stderr]]) stream.on('data', chunk => { total += chunk.length; if (total > 16 * 1024 * 1024) { child.kill('SIGKILL'); reject(new Error('Git output bound exceeded')); } else output.push(chunk); });
+      child.on('close', exitCode => resolve({ exitCode: exitCode ?? 1, stdout: new Uint8Array(Buffer.concat(stdout)), stderr: new Uint8Array(Buffer.concat(stderr)) }));
+      child.stdin.on('error', error => { if (error.code !== 'EPIPE') reject(error); });
+      child.stdin.end(stdin);
+    });
+  }
+  async function remoteGit(arg) { const result = await run({ arg: ['--git-dir', gitDir, ...arg] }); if (result.exitCode !== 0) { lastGitError = Buffer.from(result.stderr).toString('utf8'); throw new Error('Canonical Git transport failed'); } return Buffer.from(result.stdout).toString('utf8'); }
+  await mkdir(gitDir);
+  const init = await run({ arg: ['init', '--bare', '--template=', gitDir] }); if (init.exitCode !== 0) throw new Error('Git initialization failed');
+  phase = 'snapshot';
+  const refs = await remoteGit(['ls-remote', '--refs', '--', remote.href]);
+  if (refs.trim()) await remoteGit(['fetch', '--no-tags', '--', remote.href, '+refs/heads/*:refs/heads/*']);
+  const port = makeGitCliForgePort({ gitDir, indexDir: workspace, run });
+  async function observed(ref) {
+    const output = await remoteGit(['ls-remote', '--refs', '--', remote.href, ref]);
+    const rows = output.trim() ? output.trim().split('\n') : [];
+    if (!rows.length) return null;
+    if (rows.length !== 1) throw new Error('Ambiguous canonical ref');
+    const [sha, actual] = rows[0].split(/\s+/);
+    if (actual !== ref || !/^[0-9a-f]{40}$/.test(sha)) throw new Error('Invalid canonical ref');
+    return sha;
+  }
+  const nativeCasMany = port.compareAndSwapRefs;
+  port.compareAndSwapRef = (ref, expected, next) => port.compareAndSwapRefs([{ ref, expected, next }]);
+  port.compareAndSwapRefs = async (updates) => {
+    if (!Array.isArray(updates) || updates.length < 1 || updates.length > 16) throw new Error('Invalid ref transaction');
+    const localUpdates = [];
+    for (const update of updates) localUpdates.push({ ref: update.ref, expected: await port.readRef(update.ref), next: update.next });
+    if (!(await nativeCasMany(localUpdates))) throw new Error('Local ref preparation failed');
+    const before = await Promise.all(updates.map(update => observed(update.ref)));
+    if (updates.some((update, index) => before[index] !== update.expected)) return false;
+    const leases = updates.map(update => '--force-with-lease=' + update.ref + ':' + (update.expected ?? ''));
+    const refspecs = updates.map(update => (update.next ?? '') + ':' + update.ref);
+    const result = await run({ arg: ['--git-dir', gitDir, 'push', '--porcelain', ...(updates.length > 1 ? ['--atomic'] : []), '--no-verify', '--no-follow-tags', ...leases, '--', remote.href, ...refspecs] });
+    const after = await Promise.all(updates.map(update => observed(update.ref)));
+    if (after.every((value, index) => value === updates[index].next)) return true;
+    if (result.exitCode !== 0) {
+      const status = Buffer.from(result.stdout).toString('utf8');
+      if (/\[(?:remote )?rejected\] \((?:stale info|incorrect old value provided|atomic push failed|atomic transaction failed)\)/.test(status) || after.every((value, index) => value === updates[index].expected)) return false;
+      lastGitError = Buffer.from(result.stderr).toString('utf8') + ' ' + status;
+      throw new Error('Canonical publication failed');
+    }
+    throw new Error('Canonical publication readback failed');
+  };
+  phase = frame.method;
+  let result = await port[frame.method](...frame.args);
+  const object = frame.method === 'writeCommit' ? result : frame.method === 'mergeCommits' && result.status === 'merged' ? result.commit : undefined;
+  if (object) {
+    const retained = 'refs/heads/retained/objects/' + object;
+    const retainedNow = await observed(retained);
+    if (retainedNow !== object && !(await port.compareAndSwapRef(retained, null, object))) throw new Error('Object retention failed');
+  }
+  process.stdout.write(JSON.stringify({ ok: true, result }) + '\n');
+} catch (error) {
+  // Never print credential-bearing Git diagnostics or the private input frame.
+  if (process.env.GFY_FORGE_RPC_DIAGNOSTICS === '1') { let detail = String(error.message) + ' ' + lastGitError; for (const secret of redactions) detail = detail.replaceAll(secret, '[redacted]'); process.stderr.write(detail.slice(-600) + '\n'); }
+  process.stdout.write(JSON.stringify({ ok: false, error: 'forge_git_rpc_failed', phase }) + '\n');
+  process.exitCode = 1;
+} finally { if (workspace) await rm(workspace, { recursive: true, force: true }); }

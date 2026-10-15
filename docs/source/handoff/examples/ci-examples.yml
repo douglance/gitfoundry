@@ -1,0 +1,77 @@
+# gitfoundry Linux Actions-profile example. Action refs below are common version tags,
+# not immutable supply-chain pins. The intake resolver must record exact commits
+# and the offline dependency bundle must include their complete source/runtime.
+name: Linux CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Install
+        run: npm ci
+      - name: Test
+        run: npm test
+      - name: Build
+        run: npm run build
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-node-${{ matrix.node }}
+          path: dist/
+          retention-days: 7
+
+  report:
+    needs: [test]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dependency conclusion
+        env:
+          TEST_RESULT: ${{ needs.test.result }}
+        run: printf '%s\n' "$TEST_RESULT"
+
+# Separate required fixture: services example. This is a compatibility acceptance
+# target, not a claim that stock Docker-in-Docker reproduces bridge networking.
+#
+# jobs:
+#   integration:
+#     runs-on: ubuntu-latest
+#     container: node:22-bookworm
+#     services:
+#       postgres:
+#         image: postgres:16
+#         env:
+#           POSTGRES_PASSWORD: fixture-only
+#         options: >-
+#           --health-cmd pg_isready
+#           --health-interval 5s
+#           --health-timeout 5s
+#           --health-retries 5
+#     steps:
+#       - uses: actions/checkout@v4
+#       - run: npm ci && npm run test:integration
+#         env:
+#           DATABASE_URL: postgres://postgres:fixture-only@postgres:5432/postgres

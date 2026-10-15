@@ -1,0 +1,87 @@
+#!/usr/bin/env node
+import { existsSync, readFileSync, statSync } from 'node:fs';
+import { spawn } from 'node:child_process';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const root = dirname(fileURLToPath(import.meta.url));
+const args = process.argv.slice(2);
+const locatorPath = process.env.GFY_LOCAL_INSTANCE_FILE || resolve(process.env.HOME || '/Users/douglance', '.local/share/gitfoundry/local-instance.json');
+let child;
+
+if (args[0] === 'login' || args[0] === 'logout') {
+  const { main } = await import(resolve(root, 'scripts/gfy-login.mjs'));
+  await main(args).catch(error => { console.error(error.message); process.exitCode = 1; });
+} else if (args[0] === 'runner') {
+  child = spawn(process.execPath, [resolve(root, 'scripts/gfy-runner.mjs'), ...args.slice(1)], {
+    cwd: root,
+    stdio: 'inherit',
+    env: process.env,
+  });
+} else if (args[0] === 'local') {
+  const explicitLocalUrl = Boolean(process.env.GFY_URL) || args
+    .slice(0, args.indexOf('--') === -1 ? args.length : args.indexOf('--'))
+    .some(arg => arg === '--url' || arg.startsWith('--url='));
+  const env = args[1] === 'serve' ? process.env : nativeEnv(explicitLocalUrl);
+  if (!env.GFY_URL && env.GFY_API_BASE_URL) env.GFY_URL = env.GFY_API_BASE_URL;
+  child = spawn(process.execPath, [resolve(root, 'scripts/gfy-local.mjs'), ...args], {
+    cwd: root,
+    stdio: 'inherit',
+    env,
+  });
+} else if (args[0] === '--rust') {
+  const env = nativeEnv();
+  child = spawn(nativeBinary(), args.slice(1), {
+    cwd: root,
+    stdio: 'inherit',
+    env,
+  });
+} else {
+  const env = nativeEnv();
+  child = spawn(nativeBinary(), args, {
+    cwd: root,
+    stdio: 'inherit',
+    env,
+  });
+}
+
+function nativeBinary() {
+  const configured = process.env.GFY_NATIVE_BINARY;
+  const candidates = configured ? [resolve(configured)] : [resolve(root, 'target/debug/gfy'), resolve(root, 'target/release/gfy')];
+  const found = candidates.find(path => existsSync(path));
+  if (found) return found;
+  process.stderr.write('gfy native binary is missing; build it through the local forge, for example: ./gfy local run --version-commit <version> --argv-json ["cargo","build","-p","gfy"]\n');
+  process.exit(1);
+}
+
+function nativeEnv(explicitLocalUrl = false) {
+  const env = { ...process.env };
+  if (explicitLocalUrl || env.GFY_API_BASE_URL) return env;
+  if (!existsSync(locatorPath)) return env;
+  const locator = JSON.parse(readFileSync(locatorPath, 'utf8'));
+  if (typeof locator.url !== 'string' || locator.url.length === 0) throw new Error('local GitFoundry locator is missing url');
+  if (typeof locator.tenant !== 'string' || locator.tenant.length === 0) throw new Error('local GitFoundry locator is missing tenant');
+  if (typeof locator.owner_token_file !== 'string' || locator.owner_token_file.length === 0) throw new Error('local GitFoundry locator is missing owner_token_file');
+  env.GFY_API_BASE_URL = locator.url;
+  if (!env.GFY_TENANT_ID) env.GFY_TENANT_ID = locator.tenant;
+  if (!env.GFY_ACCESS_JWT && !env.GFY_ACCESS_JWT_FILE) {
+    const tokenFile = resolve(locator.owner_token_file);
+    const mode = statSync(tokenFile).mode & 0o777;
+    if (process.platform !== 'win32' && mode !== 0o600) throw new Error('local GitFoundry owner token file must be mode 0600');
+    env.GFY_ACCESS_JWT_FILE = tokenFile;
+  }
+  return env;
+}
+
+child?.on('error', error => {
+  process.stderr.write(error.message + '\n');
+  process.exit(1);
+});
+
+child?.on('exit', (code, signal) => {
+  if (signal) {
+    process.kill(process.pid, signal);
+    return;
+  }
+  process.exit(code ?? 1);
+});

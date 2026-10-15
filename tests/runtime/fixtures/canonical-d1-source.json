@@ -1,0 +1,6 @@
+{
+  "source": "docs/source/handoff/contracts/schema.sql",
+  "sha256": "b168f07a59f8b7c6a31cd8932c5c6933e212087fec0a135d27c7554ff8c07d35",
+  "create_table_count": 52,
+  "note": "Canonical fixture metadata for the immutable source schema; the runtime harness reads and hashes the source without modifying it."
+}

@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "check_id": "all-tests",
+  "command": [
+    "node",
+    "scripts/test-all.mjs"
+  ],
+  "files": [
+    "scripts/test-all.mjs",
+    "package.json",
+    "pnpm-lock.yaml",
+    "Cargo.toml",
+    "Cargo.lock"
+  ],
+  "runtime": "local-native-owner"
+}

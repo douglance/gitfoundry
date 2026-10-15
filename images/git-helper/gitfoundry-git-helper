@@ -1,0 +1,846 @@
+#!/bin/sh
+set -eu
+
+LC_ALL=C
+export LC_ALL
+
+zero_oid=0000000000000000000000000000000000000000
+safe_path=/usr/local/bin:/usr/bin:/bin
+max_prepare_memory_kb=2097152
+
+cleanup() {
+  if [ -n "${credential_dir:-}" ]; then
+    rm -rf "$credential_dir"
+  fi
+}
+
+die() {
+  echo "gitfoundry-git-helper: $1" >&2
+  exit 64
+}
+
+decode_field() {
+  printf '%s' "$1" | base64 -d
+}
+
+is_zero_oid() {
+  [ "$1" = "$zero_oid" ]
+}
+
+validate_oid() {
+  name=$1
+  oid=$2
+  if [ "${#oid}" -ne 40 ]; then
+    die "$name must be a 40-character lowercase hex object id or all zeros"
+  fi
+  case "$oid" in
+    *[!0123456789abcdef]*)
+      die "$name must be a 40-character lowercase hex object id or all zeros"
+      ;;
+  esac
+}
+
+git_check_ref_format() {
+  env -i \
+    PATH="$safe_path" \
+    GIT_TERMINAL_PROMPT=0 \
+    GIT_CONFIG_NOSYSTEM=1 \
+    GIT_CONFIG_GLOBAL=/dev/null \
+    LC_ALL=C \
+    git check-ref-format "$1" >/dev/null 2>&1
+}
+
+validate_publish_ref() {
+  ref=$1
+  case "$ref" in
+    refs/heads/*|refs/tags/*) ;;
+    *) die "ref must be under refs/heads or refs/tags" ;;
+  esac
+  case "$ref" in
+    refs/gfy|refs/gfy/*)
+      die "refs/gfy is reserved"
+      ;;
+  esac
+  git_check_ref_format "$ref" || die "invalid ref"
+}
+
+validate_publish_remote() {
+  remote=$1
+  if printf '%s' "$remote" | grep -q '[^ -~]'; then
+    die "remote contains an unsafe character"
+  fi
+  case "$remote" in
+    *[[:space:]]*|*\"*|*\\*)
+      die "remote contains an unsafe character"
+      ;;
+    *"'"*)
+      die "remote contains an unsafe character"
+      ;;
+    *\?*|*#*)
+      die "remote must not include query or fragment"
+      ;;
+  esac
+
+  case "$remote" in
+    https://*)
+      remote_rest=${remote#https://}
+      ;;
+    http://*)
+      [ "${GFY_HELPER_TEST_MODE:-}" = "1" ] || die "http remote requires helper test mode"
+      remote_rest=${remote#http://}
+      ;;
+    *) die "remote must be https" ;;
+  esac
+
+  remote_authority=${remote_rest%%/*}
+  [ -n "$remote_authority" ] || die "remote host is required"
+  case "$remote_authority" in
+    *@*) die "remote must not include userinfo" ;;
+  esac
+}
+
+validate_trusted_workspace() {
+  workspace_root=$(pwd -P)
+  expected_shape=$(printf '%s\n' "$workspace_root" | awk -F/ '{ print (NF == 6 && $1 == "" && $2 == "work" && $3 != "" && $4 != "" && $5 != "" && $6 == "trusted-git") ? "yes" : "no" }')
+  [ "$expected_shape" = yes ] || die "prepare-receive-pack must run in /work/<tenant>/<repository>/<operation>/trusted-git"
+  tenant_segment=$(printf '%s\n' "$workspace_root" | awk -F/ '{ print $3 }')
+  repository_segment=$(printf '%s\n' "$workspace_root" | awk -F/ '{ print $4 }')
+  operation_segment=$(printf '%s\n' "$workspace_root" | awk -F/ '{ print $5 }')
+  for checked_path in "/work" "/work/$tenant_segment" "/work/$tenant_segment/$repository_segment" "/work/$tenant_segment/$repository_segment/$operation_segment" "$workspace_root"; do
+    [ -d "$checked_path" ] || die "trusted workspace path is incomplete"
+    [ ! -L "$checked_path" ] || die "trusted workspace path must not contain symlinks"
+  done
+}
+
+require_regular_input() {
+  input_path=$1
+  [ -d input ] || die "missing input directory"
+  [ ! -L input ] || die "input directory must not be a symlink"
+  [ -e "$input_path" ] || die "missing $input_path"
+  [ -f "$input_path" ] || die "$input_path must be a regular file"
+  [ ! -L "$input_path" ] || die "$input_path must not be a symlink"
+}
+
+validate_limit_value() {
+  limit_name=$1
+  value=$2
+  max_value=$3
+  case "$value" in
+    ''|*[!0123456789]*) die "$limit_name must be a positive integer" ;;
+  esac
+  [ "$value" -gt 0 ] || die "$limit_name must be a positive integer"
+  [ "$value" -le "$max_value" ] || die "$limit_name exceeds helper ceiling"
+  printf '%s' "$value"
+}
+
+read_prepare_limits() {
+  require_regular_input input/limits
+  max_raw_bytes=""
+  max_pack_bytes=""
+  max_fact_stdout_bytes=""
+  max_new_objects=""
+  max_new_commits=""
+  max_changed_paths=""
+  max_path_bytes=""
+  max_blob_bytes=""
+  max_total_blob_bytes=""
+  deadline_ms=""
+  while IFS= read -r line; do
+    case "$line" in
+      ''|'#'*) continue ;;
+      *=*) ;;
+      *) die "unsupported limit field" ;;
+    esac
+    key=${line%%=*}
+    value=${line#*=}
+    case "$key" in
+      max_raw_bytes) [ -z "$max_raw_bytes" ] || die "duplicate limit field"; max_raw_bytes=$(validate_limit_value "$key" "$value" 8388608) ;;
+      max_pack_bytes) [ -z "$max_pack_bytes" ] || die "duplicate limit field"; max_pack_bytes=$(validate_limit_value "$key" "$value" 8388608) ;;
+      max_fact_stdout_bytes) [ -z "$max_fact_stdout_bytes" ] || die "duplicate limit field"; max_fact_stdout_bytes=$(validate_limit_value "$key" "$value" 1048576) ;;
+      max_new_objects) [ -z "$max_new_objects" ] || die "duplicate limit field"; max_new_objects=$(validate_limit_value "$key" "$value" 1000000) ;;
+      max_new_commits) [ -z "$max_new_commits" ] || die "duplicate limit field"; max_new_commits=$(validate_limit_value "$key" "$value" 100000) ;;
+      max_changed_paths) [ -z "$max_changed_paths" ] || die "duplicate limit field"; max_changed_paths=$(validate_limit_value "$key" "$value" 100000) ;;
+      max_path_bytes) [ -z "$max_path_bytes" ] || die "duplicate limit field"; max_path_bytes=$(validate_limit_value "$key" "$value" 65535) ;;
+      max_blob_bytes) [ -z "$max_blob_bytes" ] || die "duplicate limit field"; max_blob_bytes=$(validate_limit_value "$key" "$value" 1073741824) ;;
+      max_total_blob_bytes) [ -z "$max_total_blob_bytes" ] || die "duplicate limit field"; max_total_blob_bytes=$(validate_limit_value "$key" "$value" 1073741824) ;;
+      deadline_ms) [ -z "$deadline_ms" ] || die "duplicate limit field"; deadline_ms=$(validate_limit_value "$key" "$value" 55000) ;;
+      *) die "unsupported limit field" ;;
+    esac
+  done < input/limits
+  for required in "$max_raw_bytes" "$max_pack_bytes" "$max_fact_stdout_bytes" "$max_new_objects" "$max_new_commits" "$max_changed_paths" "$max_path_bytes" "$max_blob_bytes" "$max_total_blob_bytes" "$deadline_ms"; do
+    [ -n "$required" ] || die "missing required limit field"
+  done
+  raw_size=$(wc -c < input/receive-pack.raw | tr -d ' ')
+  [ "$raw_size" -le "$max_raw_bytes" ] || die "raw receive-pack input exceeds limit"
+  deadline_epoch_ms=$(( $(monotonic_milliseconds) + deadline_ms ))
+  ulimit -v "$max_prepare_memory_kb" 2>/dev/null || die "memory limit unavailable"
+  file_blocks=$(( (max_pack_bytes + max_fact_stdout_bytes + 1048575) / 512 + 4096 ))
+  ulimit -f "$file_blocks" 2>/dev/null || die "file size limit unavailable"
+  cpu_seconds=$(( (deadline_ms + 999) / 1000 + 2 ))
+  ulimit -t "$cpu_seconds" 2>/dev/null || die "cpu limit unavailable"
+}
+
+monotonic_milliseconds() {
+  perl -MTime::HiRes=clock_gettime,CLOCK_MONOTONIC -e 'printf "%.0f\n", int(clock_gettime(CLOCK_MONOTONIC) * 1000)'
+}
+
+remaining_seconds() {
+  remaining_ms=$((deadline_epoch_ms - $(monotonic_milliseconds)))
+  [ "$remaining_ms" -gt 0 ] || die "prepare-receive-pack deadline exceeded"
+  printf '%d.%03d' "$((remaining_ms / 1000))" "$((remaining_ms % 1000))"
+}
+
+read_ref_oid() {
+  read_remote=$1
+  read_ref=$2
+  result=$(run_git_with_private_credential "$read_remote" -C "$credential_dir" ls-remote --refs -- "$read_remote" "$read_ref") || die "provider ref read failed"
+  count=$(printf '%s\n' "$result" | awk 'NF > 0 { c += 1 } END { print c + 0 }')
+  if [ "$count" -eq 0 ]; then
+    printf '%s' "$zero_oid"
+    return
+  fi
+  [ "$count" -eq 1 ] || die "provider returned multiple refs"
+  printf '%s\n' "$result" | awk -v ref="$read_ref" 'NF != 2 || $2 != ref || length($1) != 40 || $1 ~ /[^0-9a-f]/ { exit 1 } { print $1 }' || die "invalid provider ref observation"
+}
+
+run_prepare_receive_pack_git() {
+  timeout_seconds=$(remaining_seconds)
+  timeout --kill-after=2s "${timeout_seconds}s" \
+  env -i \
+    PATH="$safe_path" \
+    GIT_TERMINAL_PROMPT=0 \
+    GIT_CONFIG_NOSYSTEM=1 \
+    GIT_CONFIG_GLOBAL=/dev/null \
+    GIT_CONFIG_SYSTEM=/dev/null \
+    LC_ALL=C \
+    git \
+      -c core.hooksPath=/dev/null \
+      -c core.commitGraph=false \
+      -c gc.auto=0 \
+      -c maintenance.auto=false \
+      -c protocol.allow=never \
+      -c protocol.ext.allow=never \
+      -c protocol.file.allow=never \
+      -c transfer.fsckObjects=true \
+      -c receive.fsckObjects=true \
+      -c fetch.fsckObjects=true \
+      "$@"
+}
+
+emit_prepared_fact_frame() {
+  status=$1
+  reason=$2
+  receive_pack_exit=$3
+  receive_pack_unpk=$4
+  receive_pack_ref=$5
+  result_ref_oid=$6
+  object_type=$7
+  fast_forward=$8
+  new_object_count=$9
+  shift 9
+  new_commit_count=$1
+  new_blob_max_bytes=$2
+  new_blob_total_bytes=$3
+  changed_path_b64z=$4
+  signature_file=$5
+
+  frame_file=$credential_dir/fact-frame
+  {
+    printf 'gitfoundry-prepared-receive-pack-v1\n'
+    printf 'status\t%s\n' "$status"
+    printf 'reason\t%s\n' "$reason"
+    printf 'ref\t%s\n' "$ref"
+    printf 'old\t%s\n' "$old_oid"
+    printf 'new\t%s\n' "$new_oid"
+    printf 'raw_receive_pack_sha256\t%s\n' "$raw_receive_pack_sha256"
+    printf 'pack_sha256\t%s\n' "$pack_sha256"
+    printf 'object_format\tsha1\n'
+    printf 'receive_pack_exit\t%s\n' "$receive_pack_exit"
+    printf 'receive_pack_unpk\t%s\n' "$receive_pack_unpk"
+    printf 'receive_pack_ref\t%s\n' "$receive_pack_ref"
+    printf 'result_ref_oid\t%s\n' "$result_ref_oid"
+    printf 'object_type\t%s\n' "$object_type"
+    printf 'fast_forward\t%s\n' "$fast_forward"
+    printf 'new_object_count\t%s\n' "$new_object_count"
+    printf 'new_commit_count\t%s\n' "$new_commit_count"
+    printf 'new_blob_max_bytes\t%s\n' "$new_blob_max_bytes"
+    printf 'new_blob_total_bytes\t%s\n' "$new_blob_total_bytes"
+    printf 'changed_path_b64z\t%s\n' "$changed_path_b64z"
+    if [ -f "$signature_file" ]; then cat "$signature_file"; fi
+    printf 'end\n'
+  } > "$frame_file"
+  frame_size=$(wc -c < "$frame_file" | tr -d ' ')
+  [ "$frame_size" -le "$max_fact_stdout_bytes" ] || die "fact output limit exceeded"
+  remaining_seconds >/dev/null || die "prepare-receive-pack deadline exceeded"
+  cat "$frame_file"
+}
+
+parse_receive_pack_request() {
+  perl -MDigest::SHA=sha256_hex -e '
+    use strict;
+    use warnings;
+    my ($old, $new, $ref, $raw_path, $pack_path, $native_path, $max_raw, $max_pack) = @ARGV;
+    open my $fh, "<:raw", $raw_path or die "raw_open\n";
+    local $/;
+    my $raw = <$fh>;
+    die "raw_limit\n" if length($raw) > $max_raw;
+    my $offset = 0;
+    my $command_count = 0;
+    while (1) {
+      die "truncated_packet\n" if $offset + 4 > length($raw);
+      my $hex = substr($raw, $offset, 4);
+      die "bad_packet\n" unless $hex =~ /\A[0-9a-fA-F]{4}\z/;
+      my $len = hex($hex);
+      $offset += 4;
+      last if $len == 0;
+      die "bad_packet\n" if $len <= 4 || $len > 65520 || $offset + $len - 4 > length($raw);
+      my $payload = substr($raw, $offset, $len - 4);
+      $offset += $len - 4;
+      die "multiple_commands\n" if ++$command_count > 1;
+      $payload =~ s/\n\z//;
+      my @fields = split(/\0/, $payload, -1);
+      die "bad_command\n" if @fields > 2;
+      my $line = $fields[0];
+      die "bad_command\n" unless $line =~ /\A([0-9a-fA-F]{40}) +([0-9a-fA-F]{40}) +([^ \r\n\0]+)\z/;
+      die "command_mismatch\n" unless lc($1) eq $old && lc($2) eq $new && $3 eq $ref;
+      if (@fields == 2) {
+        my $caps = $fields[1];
+        $caps =~ s/\A +| +\z//g;
+        die "bad_capabilities\n" unless $caps =~ /\A[!-~]+(?: +[!-~]+)*\z/;
+        my %seen;
+        for my $cap (split(/ +/, $caps)) {
+          my ($name) = split(/=/, $cap, 2);
+          die "duplicate_capability\n" if $seen{$name}++;
+          if ($name eq "agent") {
+            die "bad_capability\n" unless $cap =~ /\Aagent=[!-~]{1,256}\z/;
+          } elsif ($name eq "object-format") {
+            die "bad_capability\n" unless $cap eq "object-format=sha1";
+          } else {
+            die "unsupported_capability\n" unless $cap =~ /\A(?:report-status|report-status-v2|side-band-64k|ofs-delta|delete-refs|atomic|quiet)\z/;
+          }
+        }
+      }
+    }
+    die "missing_command\n" unless $command_count == 1;
+    my $pack = substr($raw, $offset);
+    die "pack_limit\n" if length($pack) > $max_pack;
+    if ($new =~ /\A0{40}\z/) {
+      die "unexpected_delete_pack\n" if length($pack) != 0;
+    } else {
+      die "missing_pack\n" unless substr($pack, 0, 4) eq "PACK";
+    }
+    open my $pfh, ">:raw", $pack_path or die "pack_open\n";
+    print {$pfh} $pack;
+    close $pfh or die "pack_close\n";
+    my $native_command = "$old $new $ref\0report-status object-format=sha1\n";
+    die "native_command_limit\n" if length($native_command) + 4 > 65520;
+    open my $nfh, ">:raw", $native_path or die "native_open\n";
+    printf {$nfh} "%04x", length($native_command) + 4;
+    print {$nfh} $native_command, "0000", $pack;
+    close $nfh or die "native_close\n";
+    print sha256_hex($raw), " ", sha256_hex($pack), "\n";
+  ' "$old_oid" "$new_oid" "$ref" input/receive-pack.raw "$credential_dir/receive-pack.pack" "$credential_dir/receive-pack.native" "$max_raw_bytes" "$max_pack_bytes"
+}
+
+parse_receive_pack_status() {
+  perl -e '
+    use strict;
+    use warnings;
+    my ($path, $expected_ref) = @ARGV;
+    open my $fh, "<:raw", $path or die "status_open\n";
+    local $/;
+    my $raw = <$fh>;
+    if (!length($raw)) { print "error missing\n"; exit; }
+    my $offset = 0;
+    my ($unpack, $ref_status);
+    my $flushed = 0;
+    while ($offset < length($raw)) {
+      die "status_truncated\n" if $offset + 4 > length($raw);
+      my $hex = substr($raw, $offset, 4);
+      die "status_packet\n" unless $hex =~ /\A[0-9a-fA-F]{4}\z/;
+      my $len = hex($hex);
+      $offset += 4;
+      if ($len == 0) {
+        die "status_incomplete\n" unless defined($unpack) && defined($ref_status);
+        die "status_trailing\n" unless $offset == length($raw);
+        $flushed = 1;
+        last;
+      }
+      die "status_packet\n" if $len <= 4 || $len > 65520 || $offset + $len - 4 > length($raw);
+      my $payload = substr($raw, $offset, $len - 4);
+      $offset += $len - 4;
+      die "status_line\n" unless $payload =~ s/\n\z// && $payload !~ /[\r\n\0]/;
+      if (!defined $unpack) {
+        die "status_unpack\n" unless $payload =~ /\Aunpack (.+)\z/;
+        $unpack = $1 eq "ok" ? "ok" : "error";
+      } elsif (!defined $ref_status) {
+        if ($payload eq "ok $expected_ref") { $ref_status = "ok"; }
+        elsif ($payload =~ /\Ang \Q$expected_ref\E .+\z/) { $ref_status = "ng"; }
+        else { die "status_ref\n"; }
+      } else {
+        die "status_extra\n";
+      }
+    }
+    die "status_incomplete\n" unless $flushed;
+    print $unpack, " ", $ref_status, "\n";
+  ' "$1" "$ref"
+}
+
+limit_oid_stream() {
+  limit=$1
+  perl -ne '
+    BEGIN { $max = shift @ARGV; $count = 0; }
+    die "oid_limit\n" if ++$count > $max;
+    die "bad_oid_line\n" unless /\A[0-9a-f]{40}(?: |\n|\z)/;
+    print;
+  ' "$limit"
+}
+
+canonicalize_path_facts() {
+  in_path=$1
+  out_path=$2
+  perl -MEncode=decode,FB_CROAK,LEAVE_SRC -e '
+    use strict;
+    use warnings;
+    my ($max_count, $max_bytes, $in, $out) = @ARGV;
+    open my $fh, "<:raw", $in or die "paths_open\n";
+    local $/;
+    my $raw = <$fh>;
+    die "path_terminator\n" if length($raw) && substr($raw, -1) ne "\0";
+    my %seen;
+    my @paths;
+    for my $path (split(/\0/, $raw)) {
+      die "empty_path\n" if $path eq "";
+      die "path_limit\n" if length($path) > $max_bytes;
+      eval { decode("UTF-8", $path, FB_CROAK | LEAVE_SRC); 1 } or die "path_encoding\n";
+      next if $seen{$path}++;
+      push @paths, $path;
+      die "path_limit\n" if @paths > $max_count;
+    }
+    open my $ofh, ">:raw", $out or die "paths_write\n";
+    if (@paths) {
+      print {$ofh} join("\0", @paths);
+      print {$ofh} "\0";
+    }
+  ' "$max_changed_paths" "$max_path_bytes" "$in_path" "$out_path"
+}
+
+object_and_graph_facts() {
+  facts_dir=$1
+  signature_file=$facts_dir/signatures
+  : > "$signature_file"
+  if is_zero_oid "$new_oid"; then
+    printf 'none none 0 0 none none \n'
+    return
+  fi
+
+  object_type=$(run_prepare_receive_pack_git --git-dir "$prepare_git_dir" cat-file -t "$new_oid")
+  fast_forward=none
+  if ! is_zero_oid "$old_oid" && [ "${ref#refs/heads/}" != "$ref" ]; then
+    if run_prepare_receive_pack_git --git-dir "$prepare_git_dir" merge-base --is-ancestor "$old_oid" "$new_oid"; then
+      fast_forward=true
+    else
+      ancestry_exit=$?
+      [ "$ancestry_exit" -eq 1 ] || die "ancestry validation failed"
+      fast_forward=false
+    fi
+  fi
+
+  rev_args=$facts_dir/rev-args
+  printf '%s\n' "$new_oid" > "$rev_args"
+  if ! is_zero_oid "$old_oid"; then printf '^%s\n' "$old_oid" >> "$rev_args"; fi
+  objects_file=$facts_dir/objects
+  if [ "$object_type" = "blob" ]; then
+    printf '%s\n' "$new_oid" > "$objects_file"
+    new_commit_count=0
+  else
+    run_prepare_receive_pack_git --git-dir "$prepare_git_dir" rev-list --objects --no-object-names --stdin < "$rev_args" > "$facts_dir/objects.raw" || die "object traversal failed"
+    limit_oid_stream "$max_new_objects" < "$facts_dir/objects.raw" > "$objects_file" || die "object traversal limit exceeded"
+    run_prepare_receive_pack_git --git-dir "$prepare_git_dir" rev-list --stdin < "$rev_args" > "$facts_dir/commits.raw" || die "commit traversal failed"
+    limit_oid_stream "$max_new_commits" < "$facts_dir/commits.raw" > "$facts_dir/commits" || die "commit traversal limit exceeded"
+    new_commit_count=$(wc -l < "$facts_dir/commits" | tr -d ' ')
+    while IFS= read -r commit_oid; do
+      [ -n "$commit_oid" ] || continue
+      commit_raw=$facts_dir/commit-$commit_oid
+      run_prepare_receive_pack_git --git-dir "$prepare_git_dir" cat-file commit "$commit_oid" > "$commit_raw"
+      printf 'signature_oid\t%s\n' "$commit_oid" >> "$signature_file"
+      if awk 'BEGIN { found = 1 } /^$/ { exit found } /^gpgsig($| )|^gpgsig-sha256($| )/ { found = 0; exit found }' "$commit_raw"; then
+        printf 'signature_status\tunsupported\n' >> "$signature_file"
+      else
+        printf 'signature_status\tnone\n' >> "$signature_file"
+      fi
+    done < "$facts_dir/commits"
+  fi
+  new_object_count=$(wc -l < "$objects_file" | tr -d ' ')
+
+  blob_max=none
+  blob_total=none
+  while IFS= read -r object_line; do
+    object_oid=${object_line%% *}
+    [ -n "$object_oid" ] || continue
+    if [ "$(run_prepare_receive_pack_git --git-dir "$prepare_git_dir" cat-file -t "$object_oid")" = "blob" ]; then
+      size=$(run_prepare_receive_pack_git --git-dir "$prepare_git_dir" cat-file -s "$object_oid")
+      case "$blob_total" in none) blob_total=0; blob_max=0 ;; esac
+      blob_total=$((blob_total + size))
+      if [ "$size" -gt "$blob_max" ]; then blob_max=$size; fi
+    fi
+  done < "$objects_file"
+
+  changed_path_b64z=""
+  peeled_type=$(run_prepare_receive_pack_git --git-dir "$prepare_git_dir" cat-file -t "$new_oid^{}") || die "tag target validation failed"
+  if [ "$peeled_type" = commit ] || [ "$peeled_type" = tree ]; then
+    : > "$facts_dir/paths.raw"
+    old_peeled_type=none
+    if ! is_zero_oid "$old_oid"; then
+      old_peeled_type=$(run_prepare_receive_pack_git --git-dir "$prepare_git_dir" cat-file -t "$old_oid^{}") || die "old target validation failed"
+    fi
+    if [ "$old_peeled_type" = commit ] || [ "$old_peeled_type" = tree ]; then
+      run_prepare_receive_pack_git --git-dir "$prepare_git_dir" diff --name-only -z "$old_oid" "$new_oid" >> "$facts_dir/paths.raw" || die "tip path traversal failed"
+    elif [ "$peeled_type" = tree ]; then
+      run_prepare_receive_pack_git --git-dir "$prepare_git_dir" ls-tree -r --name-only -z "$new_oid^{}" >> "$facts_dir/paths.raw" || die "tree path traversal failed"
+    fi
+    if [ -f "$facts_dir/commits" ]; then
+      while IFS= read -r commit_oid; do
+        [ -n "$commit_oid" ] || continue
+        run_prepare_receive_pack_git --git-dir "$prepare_git_dir" diff-tree --root -r -m --no-commit-id --name-only -z "$commit_oid" >> "$facts_dir/paths.raw" || die "history path traversal failed"
+      done < "$facts_dir/commits"
+    fi
+    canonicalize_path_facts "$facts_dir/paths.raw" "$facts_dir/paths" || die "invalid path facts"
+    if [ -s "$facts_dir/paths" ]; then changed_path_b64z=$(base64 < "$facts_dir/paths" | tr -d '\n'); fi
+  fi
+
+  printf '%s %s %s %s %s %s %s\n' "$object_type" "$fast_forward" "$new_object_count" "$new_commit_count" "$blob_max" "$blob_total" "$changed_path_b64z"
+}
+
+prepare_receive_pack() {
+  [ "$#" -eq 4 ] || die "prepare-receive-pack requires remote, old oid, new oid, and ref"
+  remote=$1
+  old_oid=$2
+  new_oid=$3
+  ref=$4
+
+  validate_trusted_workspace
+  validate_publish_remote "$remote"
+  validate_oid old_oid "$old_oid"
+  validate_oid new_oid "$new_oid"
+  validate_publish_ref "$ref"
+  if is_zero_oid "$old_oid" && is_zero_oid "$new_oid"; then die "prepare-receive-pack refuses zero-old zero-new no-op deletes"; fi
+  require_regular_input input/receive-pack.raw
+  read_prepare_limits
+  read_private_credential
+
+  request_facts=$(parse_receive_pack_request) || die "invalid receive-pack request"
+  set -- $request_facts
+  raw_receive_pack_sha256=$1
+  pack_sha256=$2
+  observed_oid=$(read_ref_oid "$remote" "$ref")
+  [ "$observed_oid" = "$old_oid" ] || die "provider ref snapshot does not match expected old oid"
+
+  prepare_git_dir=$workspace_root/repository.git
+  [ ! -e "$prepare_git_dir" ] || die "prepared repository already exists"
+  run_git_with_private_credential "$remote" -C "$credential_dir" init --bare --template= "$prepare_git_dir" >/dev/null
+  if ! is_zero_oid "$old_oid"; then run_git_with_private_credential "$remote" --git-dir "$prepare_git_dir" fetch --depth=2147483647 -- "$remote" "$ref:$ref" >/dev/null; fi
+  seeded_oid=$(run_prepare_receive_pack_git --git-dir "$prepare_git_dir" rev-parse --verify --quiet "$ref" 2>/dev/null || printf '%s' "$zero_oid")
+  [ "$seeded_oid" = "$old_oid" ] || die "seeded provider ref does not match expected old oid"
+
+  receive_out=$credential_dir/receive.out
+  receive_err=$credential_dir/receive.err
+  set +e
+  run_prepare_receive_pack_git receive-pack --stateless-rpc "$prepare_git_dir" < "$credential_dir/receive-pack.native" > "$receive_out" 2> "$receive_err"
+  receive_pack_exit=$?
+  set -e
+  native_status=$(parse_receive_pack_status "$receive_out") || die "invalid native receive-pack status"
+  set -- $native_status
+  receive_pack_unpk=$1
+  receive_pack_ref=$2
+  result_ref_oid=$(run_prepare_receive_pack_git --git-dir "$prepare_git_dir" rev-parse --verify --quiet "$ref" 2>/dev/null || printf '%s' "$zero_oid")
+
+  facts_dir=$credential_dir/facts
+  mkdir "$facts_dir"
+  if [ "$receive_pack_exit" -ne 0 ] || [ "$receive_pack_unpk" != ok ] || [ "$receive_pack_ref" != ok ] || [ "$result_ref_oid" != "$new_oid" ]; then
+    emit_prepared_fact_frame rejected native_ref_rejected "$receive_pack_exit" "$receive_pack_unpk" "$receive_pack_ref" "$result_ref_oid" none none 0 0 none none "" "$facts_dir/signatures"
+    return
+  fi
+
+  graph_facts=$(object_and_graph_facts "$facts_dir") || die "invalid native object facts"
+  set -- $graph_facts
+  object_type=$1
+  fast_forward=$2
+  new_object_count=$3
+  new_commit_count=$4
+  new_blob_max_bytes=$5
+  new_blob_total_bytes=$6
+  changed_path_b64z=${7:-}
+  if ! is_zero_oid "$new_oid" && [ "${ref#refs/heads/}" != "$ref" ] && [ "$object_type" != commit ]; then
+    emit_prepared_fact_frame rejected branch_object_type "$receive_pack_exit" "$receive_pack_unpk" "$receive_pack_ref" "$result_ref_oid" "$object_type" "$fast_forward" "$new_object_count" "$new_commit_count" "$new_blob_max_bytes" "$new_blob_total_bytes" "" "$facts_dir/signatures"
+    return
+  fi
+  if [ "$new_object_count" -gt "$max_new_objects" ] || [ "$new_commit_count" -gt "$max_new_commits" ]; then
+    emit_prepared_fact_frame rejected fact_resource_limit "$receive_pack_exit" "$receive_pack_unpk" "$receive_pack_ref" "$result_ref_oid" "$object_type" "$fast_forward" "$new_object_count" "$new_commit_count" "$new_blob_max_bytes" "$new_blob_total_bytes" "" "$facts_dir/signatures"
+    return
+  fi
+  if [ "$new_blob_max_bytes" != none ] && { [ "$new_blob_max_bytes" -gt "$max_blob_bytes" ] || [ "$new_blob_total_bytes" -gt "$max_total_blob_bytes" ]; }; then
+    emit_prepared_fact_frame rejected fact_resource_limit "$receive_pack_exit" "$receive_pack_unpk" "$receive_pack_ref" "$result_ref_oid" "$object_type" "$fast_forward" "$new_object_count" "$new_commit_count" "$new_blob_max_bytes" "$new_blob_total_bytes" "" "$facts_dir/signatures"
+    return
+  fi
+  emit_prepared_fact_frame accepted none "$receive_pack_exit" "$receive_pack_unpk" "$receive_pack_ref" "$result_ref_oid" "$object_type" "$fast_forward" "$new_object_count" "$new_commit_count" "$new_blob_max_bytes" "$new_blob_total_bytes" "$changed_path_b64z" "$facts_dir/signatures"
+}
+
+reject_source_alternates() {
+  objects=$1
+  [ ! -e "$objects/info/alternates" ] || die "source object alternates are not allowed"
+  [ ! -e "$objects/info/http-alternates" ] || die "source object alternates are not allowed"
+}
+
+detect_source_object_directory() {
+  source_root=$(pwd -P)
+  if [ -d .git ]; then
+    [ ! -L .git ] || die "source git directory must not be a symlink"
+    objects=.git/objects
+  elif [ -d objects ] && [ -d refs ]; then
+    objects=objects
+  else
+    die "publish-ref must run from a prepared git repository"
+  fi
+
+  [ -d "$objects" ] || die "source object directory is missing"
+  [ ! -L "$objects" ] || die "source object directory must not be a symlink"
+  reject_source_alternates "$objects"
+
+  source_object_dir=$source_root/$objects
+  if printf '%s' "$source_object_dir" | grep -q '[^ -~]'; then
+    die "source object directory path is unsafe"
+  fi
+  case "$source_object_dir" in
+    *[[:space:]]*) die "source object directory path is unsafe" ;;
+  esac
+}
+
+read_private_credential() {
+  provider_id=""
+  provider_repository_id=""
+  tenant_id=""
+  repository_id=""
+  username_b64=""
+  password_b64=""
+  proof_b64=""
+  while IFS= read -r line; do
+    case "$line" in
+      version=1) ;;
+      providerId=*) provider_id=${line#providerId=} ;;
+      providerRepositoryId=*) provider_repository_id=${line#providerRepositoryId=} ;;
+      tenantId=*) tenant_id=${line#tenantId=} ;;
+      repositoryId=*) repository_id=${line#repositoryId=} ;;
+      username_b64=*) username_b64=${line#username_b64=} ;;
+      password_b64=*) password_b64=${line#password_b64=} ;;
+      proof_b64=*) proof_b64=${line#proof_b64=} ;;
+      '') ;;
+      *) die "unsupported credential field" ;;
+    esac
+  done
+  [ -n "$provider_id" ] || die "missing providerId"
+  [ -n "$provider_repository_id" ] || die "missing providerRepositoryId"
+  [ -n "$tenant_id" ] || die "missing tenantId"
+  [ -n "$repository_id" ] || die "missing repositoryId"
+  [ -n "$username_b64" ] || die "missing username"
+  [ -n "$password_b64" ] || die "missing password"
+
+  credential_dir=$(mktemp -d /tmp/gitfoundry-credential.XXXXXX)
+  chmod 0700 "$credential_dir"
+  credential_file="$credential_dir/credential"
+  git_config_file="$credential_dir/gitconfig"
+  credential_protocol=https
+  case "${remote:-}" in http://*) credential_protocol=http ;; esac
+  {
+    printf 'protocol=%s\n' "$credential_protocol"
+    printf 'host=%s\n' "$remote_authority"
+    printf 'username='
+    decode_field "$username_b64"
+    printf '\npassword='
+    decode_field "$password_b64"
+    printf '\n'
+  } > "$credential_file"
+  chmod 0600 "$credential_file"
+  auth_b64=$({ decode_field "$username_b64"; printf ':'; decode_field "$password_b64"; } | base64 | tr -d '\n')
+  {
+    printf '[credential]\n'
+    printf '\thelper = "!f() { cat \"$GFY_CREDENTIAL_FILE\"; }; f"\n'
+    printf '[http]\n'
+    printf '\textraHeader = Authorization: Basic %s\n' "$auth_b64"
+    if [ -n "$proof_b64" ]; then
+      printf '\textraHeader = x-gitfoundry-egress-proof: '
+      decode_field "$proof_b64"
+      printf '\n'
+    fi
+  } > "$git_config_file"
+  chmod 0600 "$git_config_file"
+  if [ "${GFY_HELPER_TEST_MODE:-}" = "1" ]; then
+    mode=$(stat -c '%a' "$credential_file")
+    echo "credential-file-mode=$mode" >&2
+  fi
+}
+
+http_protocol_allow_for_remote() {
+  case "$1" in
+    http://*) printf 'always' ;;
+    *) printf 'never' ;;
+  esac
+}
+
+run_git_with_private_credential() {
+  run_remote=$1
+  shift
+  http_allow=$(http_protocol_allow_for_remote "$run_remote")
+  set -- env -i \
+    PATH="$safe_path" \
+    GIT_TERMINAL_PROMPT=0 \
+    GIT_CONFIG_NOSYSTEM=1 \
+    GIT_CONFIG_GLOBAL="$git_config_file" \
+    GIT_CONFIG_SYSTEM=/dev/null \
+    GFY_CREDENTIAL_FILE="$credential_file" \
+    LC_ALL=C \
+    git \
+      -c core.hooksPath=/dev/null \
+      -c core.commitGraph=false \
+      -c gc.auto=0 \
+      -c maintenance.auto=false \
+      -c transfer.fsckObjects=true \
+      -c receive.fsckObjects=true \
+      -c fetch.fsckObjects=true \
+      -c protocol.allow=never \
+      -c protocol.https.allow=always \
+      -c protocol.http.allow="$http_allow" \
+      -c protocol.ext.allow=never \
+      -c protocol.file.allow=never \
+      -c http.followRedirects=false \
+      -c push.followTags=false \
+      "$@"
+  if [ -n "${deadline_epoch_ms:-}" ]; then
+    timeout_seconds=$(remaining_seconds) || die "prepare-receive-pack deadline exceeded"
+    timeout --kill-after=2s "${timeout_seconds}s" "$@"
+  else
+    "$@"
+  fi
+}
+
+git_with_private_credential() {
+  helper_remote=$1
+  shift
+  validate_publish_remote "$helper_remote"
+  read_private_credential
+  run_git_with_private_credential "$helper_remote" "$@"
+}
+
+run_publish_git() {
+  run_remote=$1
+  shift
+  http_allow=$(http_protocol_allow_for_remote "$run_remote")
+  env -i \
+    PATH="$safe_path" \
+    GIT_DIR="$publish_git_dir" \
+    GIT_OBJECT_DIRECTORY="$source_object_dir" \
+    GIT_TERMINAL_PROMPT=0 \
+    GIT_CONFIG_NOSYSTEM=1 \
+    GIT_CONFIG_GLOBAL="$git_config_file" \
+    GIT_CONFIG_SYSTEM=/dev/null \
+    GFY_CREDENTIAL_FILE="$credential_file" \
+    LC_ALL=C \
+    git \
+      -c core.hooksPath=/dev/null \
+      -c protocol.allow=never \
+      -c protocol.https.allow=always \
+      -c protocol.http.allow="$http_allow" \
+      -c protocol.ext.allow=never \
+      -c protocol.file.allow=never \
+      -c http.followRedirects=false \
+      -c push.followTags=false \
+      "$@"
+}
+
+publish_ref() {
+  [ "$#" -eq 4 ] || die "publish-ref requires remote, old oid, new oid, and ref"
+  remote=$1
+  old_oid=$2
+  new_oid=$3
+  ref=$4
+
+  validate_publish_remote "$remote"
+  validate_oid old_oid "$old_oid"
+  validate_oid new_oid "$new_oid"
+  validate_publish_ref "$ref"
+  if is_zero_oid "$old_oid" && is_zero_oid "$new_oid"; then
+    die "publish-ref refuses zero-old zero-new no-op deletes"
+  fi
+  detect_source_object_directory
+  read_private_credential
+  observed_oid=$(read_ref_oid "$remote" "$ref")
+  [ "$observed_oid" = "$old_oid" ] || die "provider ref snapshot does not match expected old oid"
+
+  publish_git_dir="$credential_dir/publish.git"
+  run_git_with_private_credential "$remote" -C "$credential_dir" init --bare --template= "$publish_git_dir" >/dev/null
+  if ! is_zero_oid "$new_oid"; then
+    case "$ref" in
+      refs/heads/*) run_publish_git "$remote" cat-file -e "$new_oid^{commit}" ;;
+      refs/tags/*) run_publish_git "$remote" cat-file -e "$new_oid" ;;
+    esac
+  fi
+
+  lease_oid=$old_oid
+  if is_zero_oid "$old_oid"; then
+    lease_oid=""
+  fi
+  if is_zero_oid "$new_oid"; then
+    refspec=":$ref"
+  else
+    refspec="$new_oid:$ref"
+  fi
+
+  push_out=$credential_dir/push.out
+  run_publish_git "$remote" push \
+    --porcelain \
+    --no-verify \
+    --no-follow-tags \
+    "--force-with-lease=$ref:$lease_oid" \
+    -- \
+    "$remote" \
+    "$refspec" > "$push_out"
+  if [ "$old_oid" != "$new_oid" ] && grep -a -q '^=' "$push_out"; then
+    die "provider reported up-to-date for stale publication"
+  fi
+  cat "$push_out"
+}
+
+trap cleanup EXIT INT TERM
+
+case "${1:-}" in
+  version|--version)
+    echo "gitfoundry-git-helper 0.1.0"
+    ;;
+  ls-remote)
+    [ "$#" -ge 2 ] || die "ls-remote requires remote"
+    [ "$#" -le 3 ] || die "ls-remote accepts at most one ref"
+    remote=$2
+    ref=${3:-}
+    if [ -n "$ref" ]; then
+      git_with_private_credential "$remote" ls-remote -- "$remote" "$ref"
+    else
+      git_with_private_credential "$remote" ls-remote -- "$remote"
+    fi
+    ;;
+  fetch-ref)
+    [ "$#" -eq 4 ] || die "fetch-ref requires remote, ref, and target ref"
+    remote=$2
+    git_with_private_credential "$remote" fetch --depth=1 -- "$remote" "$3:$4"
+    ;;
+  publish-ref)
+    shift
+    publish_ref "$@"
+    ;;
+  prepare-receive-pack)
+    shift
+    prepare_receive_pack "$@"
+    ;;
+  *)
+    die "unsupported helper operation"
+    ;;
+esac

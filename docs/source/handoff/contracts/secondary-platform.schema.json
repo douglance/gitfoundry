@@ -1,0 +1,3087 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:gitfoundry:secondary-platform:v1",
+  "$defs": {
+    "PlatformExtensionManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "manifest_version": {
+          "const": "1"
+        },
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,39}/[a-z][a-z0-9-]{0,39}$"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$"
+        },
+        "api_version": {
+          "const": "1"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "runtime": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "enum": [
+                "worker",
+                "container",
+                "remote"
+              ]
+            },
+            "entrypoint": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_./-]+$"
+            },
+            "image": {
+              "type": "string",
+              "pattern": "^.+@sha256:[a-f0-9]{64}$"
+            },
+            "endpoint": {
+              "type": "string",
+              "format": "uri",
+              "pattern": "^https://"
+            },
+            "provider_key_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "kind": {
+                    "const": "worker"
+                  }
+                }
+              },
+              "then": {
+                "required": [
+                  "entrypoint"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "kind": {
+                    "const": "container"
+                  }
+                }
+              },
+              "then": {
+                "required": [
+                  "image"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "kind": {
+                    "const": "remote"
+                  }
+                }
+              },
+              "then": {
+                "required": [
+                  "endpoint",
+                  "provider_key_id"
+                ]
+              }
+            }
+          ]
+        },
+        "capabilities": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "action": {
+                "enum": [
+                  "audit.export",
+                  "audit.read",
+                  "batch.execute",
+                  "check.read",
+                  "check.write",
+                  "comment.admin",
+                  "comment.read",
+                  "comment.write",
+                  "directory.admin",
+                  "directory.read",
+                  "directory.write",
+                  "environment.admin",
+                  "environment.read",
+                  "environment.write",
+                  "event.admin",
+                  "event.read",
+                  "event.write",
+                  "extension.admin",
+                  "extension.capabilities.approve",
+                  "extension.install",
+                  "extension.invoke",
+                  "extension.read",
+                  "extension.write",
+                  "fleet.admin",
+                  "fleet.read",
+                  "identity.admin",
+                  "identity.connections.manage",
+                  "identity.groups.map",
+                  "identity.read",
+                  "identity.write",
+                  "issue.admin",
+                  "issue.read",
+                  "issue.write",
+                  "migration.activate",
+                  "migration.admin",
+                  "migration.launch",
+                  "network.fetch",
+                  "notification.admin",
+                  "notification.read",
+                  "notification.write",
+                  "oauth.admin",
+                  "operation.cancel",
+                  "operation.read",
+                  "permission.admin",
+                  "permission.read",
+                  "permission.write",
+                  "project.admin",
+                  "project.read",
+                  "project.write",
+                  "pull_request.admin",
+                  "pull_request.merge",
+                  "pull_request.read",
+                  "pull_request.write",
+                  "quota.manage",
+                  "release.admin",
+                  "release.read",
+                  "release.write",
+                  "repository.admin",
+                  "repository.read",
+                  "repository.write",
+                  "review.admin",
+                  "review.read",
+                  "review.write",
+                  "role.definitions.manage",
+                  "run.admin",
+                  "run.cancel",
+                  "run.dispatch",
+                  "run.read",
+                  "run.write",
+                  "runner.pool.manage",
+                  "search.read",
+                  "secret.admin",
+                  "secret.read_metadata",
+                  "secret.use",
+                  "secret.write",
+                  "service.identity.manage",
+                  "tenant.admin",
+                  "tenant.read",
+                  "tenant.settings.manage",
+                  "ui.panel"
+                ]
+              },
+              "resources": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "repository_ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 1000,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    }
+                  },
+                  "environment_ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 1000,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    }
+                  },
+                  "connection_aliases": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 1000,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    }
+                  },
+                  "tenant_wide": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [],
+                "anyOf": [
+                  {
+                    "required": [
+                      "repository_ids"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "environment_ids"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "connection_aliases"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "tenant_wide"
+                    ],
+                    "properties": {
+                      "tenant_wide": {
+                        "const": true
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "required": [
+              "action",
+              "resources"
+            ]
+          }
+        },
+        "egress": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "hostname": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9.-]+$"
+              },
+              "ports": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 65535
+                }
+              },
+              "methods": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "enum": [
+                    "GET",
+                    "HEAD",
+                    "POST",
+                    "PUT",
+                    "PATCH",
+                    "DELETE"
+                  ]
+                }
+              },
+              "connection_alias": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            },
+            "required": [
+              "hostname",
+              "ports",
+              "methods"
+            ]
+          }
+        },
+        "limits": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "cpu_ms": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 300000
+            },
+            "wall_ms": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3600000
+            },
+            "memory_mib": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 12288
+            },
+            "concurrency": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000
+            },
+            "output_bytes": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1048576
+            }
+          },
+          "required": [
+            "cpu_ms",
+            "wall_ms",
+            "memory_mib",
+            "concurrency",
+            "output_bytes"
+          ]
+        },
+        "hooks": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string",
+                "pattern": "^[a-z_]+(?:\\.[a-z_]+)+\\.pre$"
+              },
+              "handler": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "priority": {
+                "type": "integer",
+                "minimum": -10000,
+                "maximum": 10000
+              },
+              "deadline_ms": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 2000
+              },
+              "input_schema_version": {
+                "const": "1"
+              },
+              "output_schema_version": {
+                "const": "1"
+              }
+            },
+            "required": [
+              "name",
+              "handler",
+              "required",
+              "priority",
+              "deadline_ms",
+              "input_schema_version",
+              "output_schema_version"
+            ]
+          }
+        },
+        "events": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "types": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "pattern": "^[a-z_]+(?:\\.[a-z_]+)+$"
+                }
+              },
+              "handler": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "event_version": {
+                "const": "1"
+              }
+            },
+            "required": [
+              "types",
+              "handler",
+              "event_version"
+            ]
+          }
+        },
+        "contributions": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "cli": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9-]*$"
+                  },
+                  "handler": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "input_schema": {
+                    "type": "object"
+                  },
+                  "output_schema": {
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "command",
+                  "handler",
+                  "description",
+                  "input_schema",
+                  "output_schema"
+                ]
+              }
+            },
+            "mcp": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "operation": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9_]*$"
+                  },
+                  "handler": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "input_schema": {
+                    "type": "object"
+                  },
+                  "output_schema": {
+                    "type": "object"
+                  },
+                  "effect": {
+                    "enum": [
+                      "read",
+                      "write",
+                      "destructive"
+                    ]
+                  },
+                  "idempotent": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "operation",
+                  "handler",
+                  "description",
+                  "input_schema",
+                  "output_schema",
+                  "effect",
+                  "idempotent"
+                ]
+              }
+            },
+            "ui": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "slot": {
+                    "enum": [
+                      "repository.tab",
+                      "pull_request.sidebar",
+                      "pull_request.action",
+                      "issue.panel",
+                      "run.summary",
+                      "tenant.settings",
+                      "migration.report"
+                    ]
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "asset": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "csp": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "connect_src": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^https://"
+                        }
+                      },
+                      "img_src": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^https://"
+                        }
+                      }
+                    }
+                  }
+                },
+                "required": [
+                  "slot",
+                  "name",
+                  "asset",
+                  "csp"
+                ]
+              }
+            },
+            "workflow_steps": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9-]*$"
+                  },
+                  "handler": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "input_schema": {
+                    "type": "object"
+                  },
+                  "output_schema": {
+                    "type": "object"
+                  },
+                  "timeout_ms": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "effect": {
+                    "enum": [
+                      "read",
+                      "write",
+                      "destructive"
+                    ]
+                  }
+                },
+                "required": [
+                  "name",
+                  "handler",
+                  "input_schema",
+                  "output_schema",
+                  "timeout_ms",
+                  "effect"
+                ]
+              }
+            }
+          },
+          "required": []
+        },
+        "oauth": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "inbound": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "client_type": {
+                    "enum": [
+                      "public",
+                      "confidential"
+                    ]
+                  },
+                  "redirect_uris": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  },
+                  "scopes": {
+                    "type": "array",
+                    "items": {
+                      "enum": [
+                        "audit.export",
+                        "audit.read",
+                        "batch.execute",
+                        "check.read",
+                        "check.write",
+                        "comment.admin",
+                        "comment.read",
+                        "comment.write",
+                        "directory.admin",
+                        "directory.read",
+                        "directory.write",
+                        "environment.admin",
+                        "environment.read",
+                        "environment.write",
+                        "event.admin",
+                        "event.read",
+                        "event.write",
+                        "extension.admin",
+                        "extension.capabilities.approve",
+                        "extension.install",
+                        "extension.invoke",
+                        "extension.read",
+                        "extension.write",
+                        "fleet.admin",
+                        "fleet.read",
+                        "identity.admin",
+                        "identity.connections.manage",
+                        "identity.groups.map",
+                        "identity.read",
+                        "identity.write",
+                        "issue.admin",
+                        "issue.read",
+                        "issue.write",
+                        "migration.activate",
+                        "migration.admin",
+                        "migration.launch",
+                        "network.fetch",
+                        "notification.admin",
+                        "notification.read",
+                        "notification.write",
+                        "oauth.admin",
+                        "operation.cancel",
+                        "operation.read",
+                        "permission.admin",
+                        "permission.read",
+                        "permission.write",
+                        "project.admin",
+                        "project.read",
+                        "project.write",
+                        "pull_request.admin",
+                        "pull_request.merge",
+                        "pull_request.read",
+                        "pull_request.write",
+                        "quota.manage",
+                        "release.admin",
+                        "release.read",
+                        "release.write",
+                        "repository.admin",
+                        "repository.read",
+                        "repository.write",
+                        "review.admin",
+                        "review.read",
+                        "review.write",
+                        "role.definitions.manage",
+                        "run.admin",
+                        "run.cancel",
+                        "run.dispatch",
+                        "run.read",
+                        "run.write",
+                        "runner.pool.manage",
+                        "search.read",
+                        "secret.admin",
+                        "secret.read_metadata",
+                        "secret.use",
+                        "secret.write",
+                        "service.identity.manage",
+                        "tenant.admin",
+                        "tenant.read",
+                        "tenant.settings.manage",
+                        "ui.panel"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "name",
+                  "client_type",
+                  "redirect_uris",
+                  "scopes"
+                ]
+              }
+            },
+            "outbound": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "provider_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "connection_alias": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "provider_scopes": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    }
+                  }
+                },
+                "required": [
+                  "provider_id",
+                  "connection_alias",
+                  "provider_scopes"
+                ]
+              }
+            }
+          },
+          "required": []
+        },
+        "config_schema": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "manifest_version",
+        "name",
+        "version",
+        "api_version",
+        "description",
+        "runtime",
+        "capabilities",
+        "egress",
+        "limits",
+        "hooks",
+        "events",
+        "contributions",
+        "oauth",
+        "config_schema"
+      ]
+    },
+    "PlatformResourceSelectors": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "repository_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1000,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "environment_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1000,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "connection_aliases": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1000,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "tenant_wide": {
+          "type": "boolean"
+        }
+      },
+      "required": [],
+      "anyOf": [
+        {
+          "required": [
+            "repository_ids"
+          ]
+        },
+        {
+          "required": [
+            "environment_ids"
+          ]
+        },
+        {
+          "required": [
+            "connection_aliases"
+          ]
+        },
+        {
+          "required": [
+            "tenant_wide"
+          ],
+          "properties": {
+            "tenant_wide": {
+              "const": true
+            }
+          }
+        }
+      ]
+    },
+    "PlatformCapabilityGrant": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": [
+            "audit.export",
+            "audit.read",
+            "batch.execute",
+            "check.read",
+            "check.write",
+            "comment.admin",
+            "comment.read",
+            "comment.write",
+            "directory.admin",
+            "directory.read",
+            "directory.write",
+            "environment.admin",
+            "environment.read",
+            "environment.write",
+            "event.admin",
+            "event.read",
+            "event.write",
+            "extension.admin",
+            "extension.capabilities.approve",
+            "extension.install",
+            "extension.invoke",
+            "extension.read",
+            "extension.write",
+            "fleet.admin",
+            "fleet.read",
+            "identity.admin",
+            "identity.connections.manage",
+            "identity.groups.map",
+            "identity.read",
+            "identity.write",
+            "issue.admin",
+            "issue.read",
+            "issue.write",
+            "migration.activate",
+            "migration.admin",
+            "migration.launch",
+            "network.fetch",
+            "notification.admin",
+            "notification.read",
+            "notification.write",
+            "oauth.admin",
+            "operation.cancel",
+            "operation.read",
+            "permission.admin",
+            "permission.read",
+            "permission.write",
+            "project.admin",
+            "project.read",
+            "project.write",
+            "pull_request.admin",
+            "pull_request.merge",
+            "pull_request.read",
+            "pull_request.write",
+            "quota.manage",
+            "release.admin",
+            "release.read",
+            "release.write",
+            "repository.admin",
+            "repository.read",
+            "repository.write",
+            "review.admin",
+            "review.read",
+            "review.write",
+            "role.definitions.manage",
+            "run.admin",
+            "run.cancel",
+            "run.dispatch",
+            "run.read",
+            "run.write",
+            "runner.pool.manage",
+            "search.read",
+            "secret.admin",
+            "secret.read_metadata",
+            "secret.use",
+            "secret.write",
+            "service.identity.manage",
+            "tenant.admin",
+            "tenant.read",
+            "tenant.settings.manage",
+            "ui.panel"
+          ]
+        },
+        "resources": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "repository_ids": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 1000,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            },
+            "environment_ids": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 1000,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            },
+            "connection_aliases": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 1000,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            },
+            "tenant_wide": {
+              "type": "boolean"
+            }
+          },
+          "required": [],
+          "anyOf": [
+            {
+              "required": [
+                "repository_ids"
+              ]
+            },
+            {
+              "required": [
+                "environment_ids"
+              ]
+            },
+            {
+              "required": [
+                "connection_aliases"
+              ]
+            },
+            {
+              "required": [
+                "tenant_wide"
+              ],
+              "properties": {
+                "tenant_wide": {
+                  "const": true
+                }
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "action",
+        "resources"
+      ]
+    },
+    "PlatformExtensionInstallation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "extension_name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,39}/[a-z][a-z0-9-]{0,39}$"
+        },
+        "extension_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "manifest_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "package_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "runtime_kind": {
+          "enum": [
+            "worker",
+            "container",
+            "remote"
+          ]
+        },
+        "status": {
+          "enum": [
+            "pending",
+            "active",
+            "suspended",
+            "revoked"
+          ]
+        },
+        "phase": {
+          "enum": [
+            "staged",
+            "validating",
+            "pending_approval",
+            "active",
+            "disabled",
+            "suspended",
+            "upgrading",
+            "uninstalling",
+            "removed",
+            "failed"
+          ]
+        },
+        "installed_by": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "approved_grants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PlatformCapabilityGrant"
+          },
+          "maxItems": 100
+        },
+        "configuration_schema_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "configuration_json": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "policy_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "previous_package_digest": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "tenant_id",
+        "id",
+        "version",
+        "created_at",
+        "updated_at",
+        "extension_name",
+        "extension_version",
+        "manifest_digest",
+        "package_digest",
+        "runtime_kind",
+        "status",
+        "phase",
+        "installed_by",
+        "approved_grants",
+        "configuration_schema_digest",
+        "configuration_json",
+        "policy_version",
+        "previous_package_digest"
+      ]
+    },
+    "PlatformExtensionRegisterRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "manifest": {
+          "$ref": "#/$defs/PlatformExtensionManifest"
+        },
+        "package_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "provenance_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "manifest",
+        "package_digest",
+        "provenance_ref"
+      ],
+      "description": "Publish/stage an immutable package record. Capability approval and active installation require extension.install; registration cannot grant access."
+    },
+    "PlatformExtensionEditRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "configuration_json": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "desired_status": {
+          "enum": [
+            "active",
+            "suspended"
+          ]
+        }
+      },
+      "required": [],
+      "description": "At least one patch field required; validate configuration_json against pinned manifest config_schema. Status transitions cannot expand grants; every write requires expected-version metadata.",
+      "minProperties": 1
+    },
+    "PlatformCapabilityPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "package_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "manifest_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "policy_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "requested_grants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PlatformCapabilityGrant"
+          },
+          "maxItems": 100
+        },
+        "approved_grants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PlatformCapabilityGrant"
+          },
+          "maxItems": 100
+        },
+        "egress_hosts": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "maxItems": 100
+        },
+        "requires_approval": {
+          "type": "boolean"
+        },
+        "approval_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "plan_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "tenant_id",
+        "id",
+        "version",
+        "created_at",
+        "updated_at",
+        "package_digest",
+        "manifest_digest",
+        "policy_version",
+        "requested_grants",
+        "approved_grants",
+        "egress_hosts",
+        "requires_approval",
+        "approval_id",
+        "plan_digest",
+        "expires_at"
+      ]
+    },
+    "PlatformExtensionInstallRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "package_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "manifest_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "plan_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "plan_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "policy_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "configuration_json": {
+          "type": "string",
+          "maxLength": 65536
+        }
+      },
+      "required": [
+        "package_digest",
+        "manifest_digest",
+        "plan_id",
+        "plan_digest",
+        "policy_version",
+        "configuration_json"
+      ],
+      "description": "Install exactly the approved immutable package/capability plan; reject moved tags, stale plan/policy and unapproved grant expansion."
+    },
+    "PlatformExtensionRevokeRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "reason": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "cancel_active_invocations": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "reason",
+        "cancel_active_invocations"
+      ],
+      "description": "Revoke leases and broker access before best-effort runtime cancellation. Always cancel future delivery dispatch."
+    },
+    "PlatformDelivery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "event_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "subscription_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "installation_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "attempt": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "status": {
+          "enum": [
+            "queued",
+            "leased",
+            "delivering",
+            "succeeded",
+            "retry_wait",
+            "dead_letter",
+            "cancelled"
+          ]
+        },
+        "next_attempt_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lease_generation": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "response_status": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 100,
+              "maximum": 599
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "failure_code": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "original_delivery_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "projection_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "last_attempt_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "tenant_id",
+        "id",
+        "version",
+        "created_at",
+        "updated_at",
+        "event_id",
+        "subscription_id",
+        "installation_id",
+        "attempt",
+        "status",
+        "next_attempt_at",
+        "lease_generation",
+        "response_status",
+        "failure_code",
+        "original_delivery_id",
+        "projection_digest",
+        "last_attempt_at"
+      ]
+    },
+    "PlatformDeliveryQuery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "installation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "subscription_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "event_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "status": {
+          "enum": [
+            "queued",
+            "leased",
+            "delivering",
+            "succeeded",
+            "retry_wait",
+            "dead_letter",
+            "cancelled"
+          ]
+        }
+      },
+      "required": []
+    },
+    "PlatformReplayRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "dry_run": {
+          "type": "boolean"
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "current_permissions_only": {
+          "const": true
+        },
+        "expected_delivery_version": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "dry_run",
+        "reason",
+        "current_permissions_only",
+        "expected_delivery_version"
+      ],
+      "description": "Replay references the selected delivery path ID; create a new delivery ID/original reference, keep event ID unchanged, reauthorize current grant and retained projection."
+    },
+    "PlatformEventSubscription": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "event_types": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "maxItems": 100
+        },
+        "repository_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "maxItems": 1000
+        },
+        "installation_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "webhook_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "handler": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "enum": [
+            "active",
+            "paused",
+            "revoked"
+          ]
+        },
+        "schema_version": {
+          "const": "1"
+        },
+        "replay_window_days": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 30
+        },
+        "signing_key_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "tenant_id",
+        "id",
+        "version",
+        "created_at",
+        "updated_at",
+        "name",
+        "event_types",
+        "repository_ids",
+        "installation_id",
+        "webhook_id",
+        "handler",
+        "status",
+        "schema_version",
+        "replay_window_days",
+        "signing_key_id"
+      ]
+    },
+    "PlatformEventSubscribeRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "event_types": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "maxItems": 100
+        },
+        "repository_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "maxItems": 1000
+        },
+        "mode": {
+          "enum": [
+            "extension",
+            "webhook"
+          ]
+        },
+        "installation_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "webhook_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "handler": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "schema_version": {
+          "const": "1"
+        },
+        "replay_window_days": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 30
+        }
+      },
+      "required": [
+        "name",
+        "event_types",
+        "repository_ids",
+        "mode",
+        "installation_id",
+        "webhook_id",
+        "handler",
+        "schema_version",
+        "replay_window_days"
+      ],
+      "description": "Extension mode requires same-tenant active installation and registered handler; webhook mode requires same-tenant ForgeWebhook ID. Select exactly one target; a URL alone cannot create an unapproved destination.",
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "extension"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "installation_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "handler": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "webhook_id": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "webhook"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "webhook_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "installation_id": {
+                "type": "null"
+              },
+              "handler": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "PlatformEventQuery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "aggregate_type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "aggregate_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "event_type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "after_sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "after": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "before": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": []
+    },
+    "PlatformAuditEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "occurred_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "actor": {
+          "$ref": "#/$defs/Actor"
+        },
+        "action": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "resource_type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "resource_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "decision": {
+          "enum": [
+            "allow",
+            "deny",
+            "error"
+          ]
+        },
+        "result": {
+          "enum": [
+            "admitted",
+            "succeeded",
+            "failed",
+            "cancelled",
+            "unknown"
+          ]
+        },
+        "reason_code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "policy_version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "operation_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "correlation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "source_surface": {
+          "enum": [
+            "web",
+            "cli",
+            "mcp",
+            "api",
+            "git",
+            "workflow",
+            "extension",
+            "migration",
+            "system"
+          ]
+        },
+        "input_digest": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "output_digest": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "previous_entry_hash": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "entry_hash": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "tenant_id",
+        "id",
+        "version",
+        "created_at",
+        "updated_at",
+        "occurred_at",
+        "actor",
+        "action",
+        "resource_type",
+        "resource_id",
+        "decision",
+        "result",
+        "reason_code",
+        "policy_version",
+        "request_id",
+        "operation_id",
+        "correlation_id",
+        "source_surface",
+        "input_digest",
+        "output_digest",
+        "previous_entry_hash",
+        "entry_hash"
+      ]
+    },
+    "PlatformAuditQuery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "actor_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "resource_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "action": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "decision": {
+          "enum": [
+            "allow",
+            "deny",
+            "error"
+          ]
+        },
+        "after": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "before": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": []
+    },
+    "PlatformAuditExportRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "filter": {
+          "$ref": "#/$defs/PlatformAuditQuery"
+        },
+        "format": {
+          "enum": [
+            "jsonl",
+            "csv"
+          ]
+        },
+        "include_integrity_manifest": {
+          "type": "boolean"
+        },
+        "expires_in_seconds": {
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 86400
+        }
+      },
+      "required": [
+        "filter",
+        "format",
+        "include_integrity_manifest",
+        "expires_in_seconds"
+      ],
+      "description": "Export authorized audit projection to protected storage. Output reference access reauthorizes and observes expiry/retention; do not include raw bearer tokens, secret values or signing keys."
+    },
+    "PlatformAuditExportResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "export_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "artifact_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "row_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "format": {
+          "enum": [
+            "jsonl",
+            "csv"
+          ]
+        },
+        "integrity_manifest_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "export_id",
+        "artifact_id",
+        "row_count",
+        "sha256",
+        "expires_at",
+        "format",
+        "integrity_manifest_id"
+      ]
+    },
+    "PlatformFleetStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "pool_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "runtime": {
+          "enum": [
+            "container",
+            "sandbox",
+            "external_adapter"
+          ]
+        },
+        "image_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "instance_type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "labels": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "maxItems": 100
+        },
+        "desired_capacity": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "warm_capacity": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "active_capacity": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "queued_jobs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "concurrency_limit": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "cpu_quota_vcpu": {
+          "type": "number",
+          "minimum": 0
+        },
+        "memory_quota_mib": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "disk_quota_mib": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "hourly_budget_minor_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "currency": {
+          "const": "USD"
+        },
+        "health": {
+          "enum": [
+            "healthy",
+            "degraded",
+            "draining",
+            "unavailable"
+          ]
+        },
+        "oldest_queued_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "configuration_generation": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "tenant_id",
+        "id",
+        "version",
+        "created_at",
+        "updated_at",
+        "pool_name",
+        "runtime",
+        "image_digest",
+        "instance_type",
+        "labels",
+        "desired_capacity",
+        "warm_capacity",
+        "active_capacity",
+        "queued_jobs",
+        "concurrency_limit",
+        "cpu_quota_vcpu",
+        "memory_quota_mib",
+        "disk_quota_mib",
+        "hourly_budget_minor_units",
+        "currency",
+        "health",
+        "oldest_queued_at",
+        "configuration_generation"
+      ]
+    },
+    "PlatformFleetConfigureRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "image_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "instance_type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "labels": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "maxItems": 100
+        },
+        "minimum_warm": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_concurrency": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "job_deadline_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400
+        },
+        "cpu_quota_vcpu": {
+          "type": "number",
+          "minimum": 0
+        },
+        "memory_quota_mib": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "disk_quota_mib": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "hourly_budget_minor_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "drain": {
+          "type": "boolean"
+        }
+      },
+      "required": [],
+      "description": "Nonempty patch. Validate tested image/class registry, max concurrency within tenant/account quota, minWarm<=maxConcurrency. Drain stops admission; existing jobs finish or are cancelled by explicit operation. USD budget in cents; no claimed billing rate.",
+      "minProperties": 1
+    },
+    "PlatformCapabilityDescription": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "operation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "action": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "allowed": {
+          "type": "boolean"
+        },
+        "reason_code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "effect": {
+          "enum": [
+            "read",
+            "write",
+            "destructive"
+          ]
+        },
+        "asynchronous": {
+          "type": "boolean"
+        },
+        "supports_preview": {
+          "type": "boolean"
+        },
+        "input_schema_ref": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "output_schema_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "schema_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "cli_path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "mcp_tool": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "resource_selector": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PlatformResourceSelectors"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "tenant_id",
+        "id",
+        "version",
+        "created_at",
+        "updated_at",
+        "operation_id",
+        "action",
+        "allowed",
+        "reason_code",
+        "effect",
+        "asynchronous",
+        "supports_preview",
+        "input_schema_ref",
+        "output_schema_ref",
+        "schema_digest",
+        "cli_path",
+        "mcp_tool",
+        "resource_selector"
+      ]
+    },
+    "PlatformCapabilityQuery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "family": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "allowed_only": {
+          "type": "boolean"
+        },
+        "resource_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": []
+    },
+    "PlatformConformanceSurface": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "surface": {
+          "enum": [
+            "gh_binary",
+            "gg_grammar",
+            "github_rest",
+            "github_graphql",
+            "github_actions",
+            "mcp",
+            "native_api",
+            "migration_permissions"
+          ]
+        },
+        "upstream_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "status": {
+          "enum": [
+            "unverified",
+            "passing",
+            "failing",
+            "blocked"
+          ]
+        },
+        "required_cases": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "passing_cases": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failing_cases": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "blocked_cases": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unverified_cases": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "fixture_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "blocker_codes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "maxItems": 100
+        },
+        "last_run_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "surface",
+        "upstream_version",
+        "status",
+        "required_cases",
+        "passing_cases",
+        "failing_cases",
+        "blocked_cases",
+        "unverified_cases",
+        "fixture_digest",
+        "blocker_codes",
+        "last_run_at"
+      ]
+    },
+    "PlatformConformanceBlocker": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "surface": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "source_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "resolution": {
+          "enum": [
+            "implementation",
+            "acquisition",
+            "upstream_client_change",
+            "requirement_decision",
+            "provider_feasibility"
+          ]
+        },
+        "required": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "code",
+        "surface",
+        "description",
+        "source_ref",
+        "resolution",
+        "required"
+      ]
+    },
+    "PlatformConformanceReport": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "report_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "generated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "upstream_gh_version": {
+          "const": "2.102.0"
+        },
+        "mcp_protocol_version": {
+          "const": "2025-11-25"
+        },
+        "full_unmodified_gh_parity": {
+          "type": "boolean"
+        },
+        "full_gg_grammar_parity": {
+          "type": "boolean"
+        },
+        "full_actions_parity": {
+          "type": "boolean"
+        },
+        "surfaces": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PlatformConformanceSurface"
+          },
+          "maxItems": 100
+        },
+        "blockers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PlatformConformanceBlocker"
+          },
+          "maxItems": 1000
+        },
+        "report_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "tenant_id",
+        "report_id",
+        "generated_at",
+        "upstream_gh_version",
+        "mcp_protocol_version",
+        "full_unmodified_gh_parity",
+        "full_gg_grammar_parity",
+        "full_actions_parity",
+        "surfaces",
+        "blockers",
+        "report_digest"
+      ],
+      "description": "Coverage is measured, never implied by schema presence. Source-proven enterprise-host agent-task restriction keeps full_unmodified_gh_parity false while unresolved."
+    },
+    "PlatformOperationCancelRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "reason": {
+          "type": "string",
+          "maxLength": 4096
+        }
+      },
+      "required": [],
+      "description": "Idempotent cancellation intent; completion may win. Does not roll back committed side effects. Idempotency key and expected-version are shared mutation metadata, not duplicated here."
+    },
+    "PlatformExtensionListPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PlatformExtensionInstallation"
+          },
+          "maxItems": 1000
+        },
+        "next_cursor": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "has_more": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "items",
+        "next_cursor",
+        "has_more"
+      ]
+    },
+    "PlatformExtensionDeliveriesPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PlatformDelivery"
+          },
+          "maxItems": 1000
+        },
+        "next_cursor": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "has_more": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "items",
+        "next_cursor",
+        "has_more"
+      ]
+    },
+    "PlatformEventListPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Event"
+          },
+          "maxItems": 1000
+        },
+        "next_cursor": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "has_more": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "items",
+        "next_cursor",
+        "has_more"
+      ]
+    },
+    "PlatformAuditListPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PlatformAuditEntry"
+          },
+          "maxItems": 1000
+        },
+        "next_cursor": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "has_more": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "items",
+        "next_cursor",
+        "has_more"
+      ]
+    },
+    "PlatformFleetStatusPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PlatformFleetStatus"
+          },
+          "maxItems": 1000
+        },
+        "next_cursor": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "has_more": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "items",
+        "next_cursor",
+        "has_more"
+      ]
+    },
+    "PlatformCapabilityListPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PlatformCapabilityDescription"
+          },
+          "maxItems": 1000
+        },
+        "next_cursor": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "has_more": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "items",
+        "next_cursor",
+        "has_more"
+      ]
+    }
+  },
+  "operationMappings": {
+    "extension.list": {
+      "pageItem": "PlatformExtensionInstallation",
+      "response": "PlatformExtensionListPage"
+    },
+    "extension.view": {
+      "response": "PlatformExtensionInstallation"
+    },
+    "extension.create": {
+      "request": "PlatformExtensionRegisterRequest",
+      "response": "PlatformExtensionInstallation"
+    },
+    "extension.edit": {
+      "request": "PlatformExtensionEditRequest",
+      "response": "PlatformExtensionInstallation"
+    },
+    "extension.delete": {
+      "response": "Operation",
+      "capability": "extension.install"
+    },
+    "extension.install": {
+      "request": "PlatformExtensionInstallRequest",
+      "response": "Operation",
+      "capability": "extension.install"
+    },
+    "extension.revoke": {
+      "request": "PlatformExtensionRevokeRequest",
+      "response": "Operation",
+      "capability": "extension.install"
+    },
+    "extension.deliveries": {
+      "request": "PlatformDeliveryQuery",
+      "pageItem": "PlatformDelivery",
+      "response": "PlatformExtensionDeliveriesPage"
+    },
+    "extension.replay": {
+      "request": "PlatformReplayRequest",
+      "response": "Operation"
+    },
+    "event.list": {
+      "request": "PlatformEventQuery",
+      "pageItem": "Event",
+      "response": "PlatformEventListPage"
+    },
+    "event.subscribe": {
+      "request": "PlatformEventSubscribeRequest",
+      "response": "PlatformEventSubscription"
+    },
+    "audit.list": {
+      "request": "PlatformAuditQuery",
+      "pageItem": "PlatformAuditEntry",
+      "response": "PlatformAuditListPage"
+    },
+    "audit.export": {
+      "request": "PlatformAuditExportRequest",
+      "response": "Operation",
+      "capability": "audit.export"
+    },
+    "fleet.status": {
+      "pageItem": "PlatformFleetStatus",
+      "response": "PlatformFleetStatusPage"
+    },
+    "fleet.configure": {
+      "request": "PlatformFleetConfigureRequest",
+      "response": "PlatformFleetStatus",
+      "capability": "runner.pool.manage"
+    },
+    "capability.list": {
+      "request": "PlatformCapabilityQuery",
+      "pageItem": "PlatformCapabilityDescription",
+      "response": "PlatformCapabilityListPage"
+    },
+    "conformance.report": {
+      "response": "PlatformConformanceReport"
+    },
+    "operation.cancel": {
+      "request": "PlatformOperationCancelRequest",
+      "response": "Operation"
+    }
+  },
+  "supplementalActions": [
+    {
+      "name": "tenant.settings.manage",
+      "description": "Tenant administrative or broker action; enforce corresponding policy and resource selector."
+    },
+    {
+      "name": "identity.connections.manage",
+      "description": "Tenant administrative or broker action; enforce corresponding policy and resource selector."
+    },
+    {
+      "name": "identity.groups.map",
+      "description": "Tenant administrative or broker action; enforce corresponding policy and resource selector."
+    },
+    {
+      "name": "role.definitions.manage",
+      "description": "Tenant administrative or broker action; enforce corresponding policy and resource selector."
+    },
+    {
+      "name": "audit.export",
+      "description": "Export currently authorized audit data; also enforce audit.read data scope."
+    },
+    {
+      "name": "migration.launch",
+      "description": "Tenant administrative or broker action; enforce corresponding policy and resource selector."
+    },
+    {
+      "name": "migration.activate",
+      "description": "Tenant administrative or broker action; enforce corresponding policy and resource selector."
+    },
+    {
+      "name": "extension.install",
+      "description": "Manage approved tenant extension installation lifecycle; does not approve expanded grants."
+    },
+    {
+      "name": "extension.capabilities.approve",
+      "description": "Approve explicit package grant/egress/UI/OAuth capability expansions."
+    },
+    {
+      "name": "runner.pool.manage",
+      "description": "Manage tested execution pool settings within approved quota."
+    },
+    {
+      "name": "quota.manage",
+      "description": "Change approved tenant resource/currency budgets under provider-account limits."
+    },
+    {
+      "name": "service.identity.manage",
+      "description": "Tenant administrative or broker action; enforce corresponding policy and resource selector."
+    },
+    {
+      "name": "secret.use",
+      "description": "Tenant administrative or broker action; enforce corresponding policy and resource selector."
+    },
+    {
+      "name": "network.fetch",
+      "description": "Tenant administrative or broker action; enforce corresponding policy and resource selector."
+    },
+    {
+      "name": "extension.invoke",
+      "description": "Tenant administrative or broker action; enforce corresponding policy and resource selector."
+    },
+    {
+      "name": "ui.panel",
+      "description": "Tenant administrative or broker action; enforce corresponding policy and resource selector."
+    }
+  ]
+}

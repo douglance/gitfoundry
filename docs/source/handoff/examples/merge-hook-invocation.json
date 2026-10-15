@@ -1,0 +1,33 @@
+{
+  "envelope_version": "1",
+  "hook": "pull_request.merge.pre",
+  "tenant_id": "tenant_opaque",
+  "installation_id": "installation_opaque",
+  "invocation_id": "invocation_opaque",
+  "request_id": "request_opaque",
+  "actor": {
+    "tenant_id": "tenant_opaque",
+    "principal_id": "principal_opaque",
+    "kind": "human",
+    "policy_epoch": 12,
+    "scopes": [
+      "pull_request.merge"
+    ]
+  },
+  "resource": {
+    "kind": "pull_request",
+    "id": "pr_opaque",
+    "version": 7
+  },
+  "policy_version": 12,
+  "deadline_at": "2026-10-07T18:40:02Z",
+  "causation_id": "operation_opaque",
+  "correlation_id": "trace_opaque",
+  "causal_depth": 0,
+  "input": {
+    "repository_id": "repository_opaque",
+    "base_sha": "0123456789012345678901234567890123456789",
+    "head_sha": "abcdefabcdefabcdefabcdefabcdefabcdefabcd",
+    "merge_method": "squash"
+  }
+}

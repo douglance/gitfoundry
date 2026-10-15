@@ -1,0 +1,28 @@
+{
+  "schema_version": "1",
+  "id": "event_opaque",
+  "type": "pull_request.merged",
+  "tenant_id": "tenant_opaque",
+  "occurred_at": "2026-10-07T18:40:03Z",
+  "aggregate_type": "pull_request",
+  "aggregate_id": "pr_opaque",
+  "aggregate_version": 8,
+  "actor": {
+    "tenant_id": "tenant_opaque",
+    "principal_id": "principal_opaque",
+    "kind": "human",
+    "policy_epoch": 12,
+    "scopes": [
+      "pull_request.merge"
+    ]
+  },
+  "causation_id": "operation_opaque",
+  "correlation_id": "trace_opaque",
+  "depth": 1,
+  "data": {
+    "repository_id": "repository_opaque",
+    "pull_request_id": "pr_opaque",
+    "merge_sha": "fedcbafedcbafedcbafedcbafedcbafedcbafedcba"
+  },
+  "aggregate_sequence": 19
+}

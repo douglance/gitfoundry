@@ -1,0 +1,49 @@
+[
+  {
+    "operation_id": "repo.create",
+    "input": {
+      "namespace_id": "ns_acme",
+      "name": "example",
+      "visibility": "private",
+      "default_branch": "main"
+    }
+  },
+  {
+    "operation_id": "issue.create",
+    "input": {
+      "repository_id": "repo_example",
+      "title": "Track first integration",
+      "body": "Build against the offline contract."
+    }
+  },
+  {
+    "operation_id": "pr.create",
+    "input": {
+      "repository_id": "repo_example",
+      "source_repository_id": "repo_example",
+      "source_ref": "feature/first",
+      "target_ref": "main",
+      "title": "First change",
+      "draft": false
+    }
+  },
+  {
+    "operation_id": "review.submit",
+    "input": {
+      "expected_version": 1,
+      "head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "decision": "approved",
+      "body": "Reviewed pinned head."
+    }
+  },
+  {
+    "operation_id": "pr.merge",
+    "input": {
+      "head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "base_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "method": "fast-forward",
+      "delete_source_branch": false,
+      "eligibility_id": "elig_example"
+    }
+  }
+]

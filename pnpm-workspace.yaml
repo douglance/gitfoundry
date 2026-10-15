@@ -1,0 +1,6 @@
+packages:
+  - "packages/*"
+  - "apps/*"
+
+overrides:
+  workerd: "1.20261008.1"

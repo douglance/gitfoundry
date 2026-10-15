@@ -1,0 +1,27 @@
+{
+  "initialize": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {
+      "protocolVersion": "2024-11-05",
+      "capabilities": {},
+      "clientInfo": { "name": "gitfoundry-p0-runtime-harness", "version": "0.0.0" }
+    }
+  },
+  "tools_list": {
+    "jsonrpc": "2.0",
+    "id": 2,
+    "method": "tools/list",
+    "params": {}
+  },
+  "direct_tool": {
+    "jsonrpc": "2.0",
+    "id": 3,
+    "method": "tools/call",
+    "params": {
+      "name": "gitfoundry.codemode.execute",
+      "arguments": { "tenant": "tenant-alpha", "grant": "grant-current", "command": "status" }
+    }
+  }
+}

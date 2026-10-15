@@ -1,0 +1,192 @@
+{
+  "version": "1",
+  "operations": [
+    {
+      "id": "source.list",
+      "method": "GET",
+      "path": "/api/v1/tenants/{tenant_id}/migration-sources",
+      "capability": "migration.source.read",
+      "output_schema": "Page",
+      "input_schema": null,
+      "asynchronous": false,
+      "cli": "gfy source list",
+      "mcp_tool": "gfy_source_list"
+    },
+    {
+      "id": "source.connect",
+      "method": "POST",
+      "path": "/api/v1/tenants/{tenant_id}/migration-sources",
+      "capability": "migration.source.manage",
+      "output_schema": "SecSourceConnectionView",
+      "input_schema": "SecSourceConnectionRegister",
+      "asynchronous": false,
+      "cli": "gfy source connect",
+      "mcp_tool": "gfy_source_connect"
+    },
+    {
+      "id": "source.revoke",
+      "method": "POST",
+      "path": "/api/v1/tenants/{tenant_id}/migration-sources/{id}/revoke",
+      "capability": "migration.source.manage",
+      "output_schema": "Operation",
+      "input_schema": "SecExistingAction",
+      "asynchronous": true,
+      "cli": "gfy source revoke",
+      "mcp_tool": "gfy_source_revoke"
+    },
+    {
+      "id": "oauth.connections",
+      "method": "GET",
+      "path": "/api/v1/tenants/{tenant_id}/oauth/connections",
+      "capability": "oauth.connections.manage",
+      "output_schema": "Page",
+      "input_schema": null,
+      "asynchronous": false,
+      "cli": "gfy oauth connections",
+      "mcp_tool": "gfy_oauth_connections"
+    },
+    {
+      "id": "oauth.connect",
+      "method": "POST",
+      "path": "/api/v1/tenants/{tenant_id}/oauth/connections",
+      "capability": "oauth.connections.manage",
+      "output_schema": "SecOAuthAuthorizationStart",
+      "input_schema": "SecOAuthConnectionBegin",
+      "asynchronous": false,
+      "cli": "gfy oauth connect",
+      "mcp_tool": "gfy_oauth_connect"
+    },
+    {
+      "id": "oauth.disconnect",
+      "method": "POST",
+      "path": "/api/v1/tenants/{tenant_id}/oauth/connections/{id}/revoke",
+      "capability": "oauth.connections.manage",
+      "output_schema": "Operation",
+      "input_schema": "SecExistingAction",
+      "asynchronous": true,
+      "cli": "gfy oauth disconnect",
+      "mcp_tool": "gfy_oauth_disconnect"
+    },
+    {
+      "id": "secret.register",
+      "method": "POST",
+      "path": "/api/v1/tenants/{tenant_id}/secrets",
+      "capability": "secret.write",
+      "output_schema": "SecSecretMetadata",
+      "input_schema": "SecSecretRegister",
+      "asynchronous": false,
+      "cli": "gfy secret register",
+      "mcp_tool": "gfy_secret_register"
+    },
+    {
+      "id": "idp.list",
+      "method": "GET",
+      "path": "/api/v1/tenants/{tenant_id}/identity/connections",
+      "capability": "identity.connections.read",
+      "output_schema": "Page",
+      "input_schema": null,
+      "asynchronous": false,
+      "cli": "gfy idp list",
+      "mcp_tool": "gfy_idp_list"
+    },
+    {
+      "id": "idp.configure",
+      "method": "POST",
+      "path": "/api/v1/tenants/{tenant_id}/identity/connections",
+      "capability": "identity.connections.manage",
+      "output_schema": "SecIdentityConnectionView",
+      "input_schema": "SecIdentityConnectionConfigure",
+      "asynchronous": false,
+      "cli": "gfy idp configure",
+      "mcp_tool": "gfy_idp_configure"
+    },
+    {
+      "id": "idp.revoke",
+      "method": "POST",
+      "path": "/api/v1/tenants/{tenant_id}/identity/connections/{id}/revoke",
+      "capability": "identity.connections.manage",
+      "output_schema": "Operation",
+      "input_schema": "SecExistingAction",
+      "asynchronous": true,
+      "cli": "gfy idp revoke",
+      "mcp_tool": "gfy_idp_revoke"
+    },
+    {
+      "id": "role.list",
+      "method": "GET",
+      "path": "/api/v1/tenants/{tenant_id}/roles",
+      "capability": "role.definitions.read",
+      "output_schema": "Page",
+      "input_schema": null,
+      "asynchronous": false,
+      "cli": "gfy role list",
+      "mcp_tool": "gfy_role_list"
+    },
+    {
+      "id": "role.view",
+      "method": "GET",
+      "path": "/api/v1/tenants/{tenant_id}/roles/{id}",
+      "capability": "role.definitions.read",
+      "output_schema": "SecRoleView",
+      "input_schema": null,
+      "asynchronous": false,
+      "cli": "gfy role view",
+      "mcp_tool": "gfy_role_view"
+    },
+    {
+      "id": "role.create",
+      "method": "POST",
+      "path": "/api/v1/tenants/{tenant_id}/roles",
+      "capability": "role.definitions.manage",
+      "output_schema": "SecRoleView",
+      "input_schema": "SecRoleCreate",
+      "asynchronous": false,
+      "cli": "gfy role create",
+      "mcp_tool": "gfy_role_create"
+    },
+    {
+      "id": "role.edit",
+      "method": "PATCH",
+      "path": "/api/v1/tenants/{tenant_id}/roles/{id}",
+      "capability": "role.definitions.manage",
+      "output_schema": "SecRoleView",
+      "input_schema": "SecRoleEdit",
+      "asynchronous": false,
+      "cli": "gfy role edit",
+      "mcp_tool": "gfy_role_edit"
+    },
+    {
+      "id": "role.delete",
+      "method": "DELETE",
+      "path": "/api/v1/tenants/{tenant_id}/roles/{id}",
+      "capability": "role.definitions.manage",
+      "output_schema": "Operation",
+      "input_schema": "SecRoleDelete",
+      "asynchronous": true,
+      "cli": "gfy role delete",
+      "mcp_tool": "gfy_role_delete"
+    },
+    {
+      "id": "idp.view",
+      "method": "GET",
+      "path": "/api/v1/tenants/{tenant_id}/identity/connections/{id}",
+      "capability": "identity.connections.read",
+      "output_schema": "SecIdentityConnectionView",
+      "input_schema": null,
+      "asynchronous": false,
+      "cli": "gfy idp view",
+      "mcp_tool": "gfy_idp_view"
+    },
+    {
+      "id": "source.view",
+      "method": "GET",
+      "path": "/api/v1/tenants/{tenant_id}/migration-sources/{id}",
+      "capability": "migration.source.read",
+      "output_schema": "SecSourceConnectionView",
+      "input_schema": null,
+      "asynchronous": false,
+      "cli": "gfy source view",
+      "mcp_tool": "gfy_source_view"
+    }
+  ]
+}

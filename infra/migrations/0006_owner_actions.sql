@@ -1,0 +1,37 @@
+CREATE TABLE IF NOT EXISTS owner_action_runs (
+  tenant_id TEXT NOT NULL,
+  repository_id TEXT NOT NULL,
+  id TEXT NOT NULL,
+  version INTEGER NOT NULL DEFAULT 1 CHECK(version > 0),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  kind TEXT NOT NULL CHECK(kind IN ('all-tests','deploy-production')),
+  operation_id TEXT NOT NULL,
+  request_digest TEXT NOT NULL,
+  actor_id TEXT NOT NULL,
+  version_commit TEXT NOT NULL,
+  code_commit TEXT NOT NULL,
+  head_version_commit TEXT NOT NULL,
+  command_json TEXT NOT NULL CHECK(json_valid(command_json)),
+  status TEXT NOT NULL CHECK(status IN ('queued','in_progress','completed')),
+  conclusion TEXT CHECK(conclusion IN ('success','failure')),
+  runner_id TEXT,
+  lease_id TEXT,
+  lease_generation INTEGER NOT NULL DEFAULT 0,
+  fence_token TEXT,
+  lease_expires_at TEXT,
+  heartbeat_at TEXT,
+  phase TEXT,
+  receipt_json TEXT CHECK(receipt_json IS NULL OR json_valid(receipt_json)),
+  receipt_sha256 TEXT,
+  signature TEXT,
+  evidence_status TEXT NOT NULL DEFAULT 'none' CHECK(evidence_status IN ('none','pending','recorded','failed')),
+  evidence_ref TEXT,
+  evidence_error TEXT,
+  deployment_json TEXT CHECK(deployment_json IS NULL OR json_valid(deployment_json)),
+  PRIMARY KEY (tenant_id, repository_id, id),
+  UNIQUE (tenant_id, repository_id, operation_id)
+);
+
+CREATE INDEX IF NOT EXISTS owner_action_runs_queue_idx ON owner_action_runs(tenant_id, repository_id, status, lease_expires_at, created_at);
+CREATE INDEX IF NOT EXISTS owner_action_runs_code_idx ON owner_action_runs(tenant_id, repository_id, code_commit, kind, status);

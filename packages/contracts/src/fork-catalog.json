@@ -1,0 +1,1373 @@
+{
+  "schema_version": 2,
+  "historical_schema_version": 1,
+  "operations": [
+    {
+      "id": "auth.whoami",
+      "method": "GET",
+      "path": "/api/v1/tenants/{tenant_id}/auth/whoami",
+      "capability": "identity.read",
+      "output_schema": "Actor",
+      "input_schema": null,
+      "asynchronous": false,
+      "cli": "gfy auth whoami",
+      "mcp_tool": "gfy_auth_whoami",
+      "request_schema": null,
+      "request_location": "query",
+      "batch_eligible": true
+    },
+    {
+      "id": "repo.create",
+      "method": "POST",
+      "path": "/api/v1/tenants/{tenant_id}/repositories",
+      "capability": "repository.write",
+      "output_schema": "Repository",
+      "input_schema": "Repository",
+      "asynchronous": false,
+      "cli": "gfy repo create",
+      "mcp_tool": "gfy_repo_create",
+      "request_schema": "RepositoryCreate",
+      "request_location": "body",
+      "batch_eligible": true
+    },
+    {
+      "id": "repo.list",
+      "method": "GET",
+      "path": "/api/v1/tenants/{tenant_id}/repositories",
+      "capability": "repository.read",
+      "output_schema": "RepositoryPage",
+      "input_schema": null,
+      "asynchronous": false,
+      "cli": "gfy repo list",
+      "mcp_tool": "gfy_repo_list",
+      "request_schema": "RepositoryListQuery",
+      "request_location": "query",
+      "batch_eligible": true
+    },
+    {
+      "id": "repo.view",
+      "method": "GET",
+      "path": "/api/v1/tenants/{tenant_id}/repositories/{id}",
+      "capability": "repository.read",
+      "output_schema": "Repository",
+      "input_schema": null,
+      "asynchronous": false,
+      "cli": "gfy repo view",
+      "mcp_tool": "gfy_repo_view",
+      "request_schema": null,
+      "request_location": "query",
+      "batch_eligible": true
+    },
+    {
+      "id": "forge.head",
+      "method": "GET",
+      "path": "/api/v2/tenants/{tenant_id}/repositories/{repository_id}/forge/head",
+      "capability": "forge.read",
+      "output_schema": "ForgeHead",
+      "input_schema": null,
+      "asynchronous": false,
+      "cli": "gfy forge head",
+      "mcp_tool": "gfy_forge_head",
+      "request_schema": null,
+      "request_location": "none",
+      "batch_eligible": true
+    },
+    {
+      "id": "forge.list",
+      "method": "GET",
+      "path": "/api/v2/tenants/{tenant_id}/repositories/{repository_id}/forge/forks",
+      "capability": "forge.read",
+      "output_schema": "ForgeVersionPage",
+      "input_schema": null,
+      "asynchronous": false,
+      "cli": "gfy forge list",
+      "mcp_tool": "gfy_forge_list",
+      "request_schema": null,
+      "request_location": "none",
+      "batch_eligible": true
+    },
+    {
+      "id": "forge.view",
+      "method": "GET",
+      "path": "/api/v2/tenants/{tenant_id}/repositories/{repository_id}/forge/versions/{version_commit}",
+      "capability": "forge.read",
+      "output_schema": "ForgeVersionResponse",
+      "input_schema": null,
+      "asynchronous": false,
+      "cli": "gfy forge view",
+      "mcp_tool": "gfy_forge_view",
+      "request_schema": null,
+      "request_location": "route",
+      "batch_eligible": true
+    },
+    {
+      "id": "forge.read",
+      "method": "GET",
+      "path": "/api/v2/tenants/{tenant_id}/repositories/{repository_id}/forge/files",
+      "capability": "forge.read",
+      "output_schema": "ForgeFile",
+      "input_schema": null,
+      "asynchronous": false,
+      "cli": "gfy forge read",
+      "mcp_tool": "gfy_forge_read",
+      "request_schema": "ForgeReadQuery",
+      "request_location": "query",
+      "batch_eligible": true
+    },
+    {
+      "id": "forge.compare",
+      "method": "GET",
+      "path": "/api/v2/tenants/{tenant_id}/repositories/{repository_id}/forge/compare",
+      "capability": "forge.compare",
+      "output_schema": "ForgeComparison",
+      "input_schema": null,
+      "asynchronous": false,
+      "cli": "gfy forge compare",
+      "mcp_tool": "gfy_forge_compare",
+      "request_schema": "ForgeCompareQuery",
+      "request_location": "query",
+      "batch_eligible": true
+    },
+    {
+      "id": "forge.initialize",
+      "method": "POST",
+      "path": "/api/v2/tenants/{tenant_id}/repositories/{repository_id}/forge/initialize",
+      "capability": "forge.initialize",
+      "output_schema": "ForgeVersionResponse",
+      "input_schema": null,
+      "asynchronous": false,
+      "cli": "gfy forge initialize",
+      "mcp_tool": "gfy_forge_initialize",
+      "request_schema": "ForgeInitialize",
+      "request_location": "body",
+      "batch_eligible": false
+    },
+    {
+      "id": "forge.fork",
+      "method": "POST",
+      "path": "/api/v2/tenants/{tenant_id}/repositories/{repository_id}/forge/fork",
+      "capability": "forge.fork",
+      "output_schema": "ForgeVersionResponse",
+      "input_schema": null,
+      "asynchronous": false,
+      "cli": "gfy forge fork",
+      "mcp_tool": "gfy_forge_fork",
+      "request_schema": "ForgeFork",
+      "request_location": "body",
+      "batch_eligible": false
+    },
+    {
+      "id": "forge.commit",
+      "method": "POST",
+      "path": "/api/v2/tenants/{tenant_id}/repositories/{repository_id}/forge/commit",
+      "capability": "forge.commit",
+      "output_schema": "ForgeVersionResponse",
+      "input_schema": null,
+      "asynchronous": false,
+      "cli": "gfy forge commit",
+      "mcp_tool": "gfy_forge_commit",
+      "request_schema": "ForgeCommit",
+      "request_location": "body",
+      "batch_eligible": false
+    },
+    {
+      "id": "forge.merge",
+      "method": "POST",
+      "path": "/api/v2/tenants/{tenant_id}/repositories/{repository_id}/forge/merge",
+      "capability": "forge.merge",
+      "output_schema": "ForgeMergeResult",
+      "input_schema": null,
+      "asynchronous": false,
+      "cli": "gfy forge merge",
+      "mcp_tool": "gfy_forge_merge",
+      "request_schema": "ForgeMerge",
+      "request_location": "body",
+      "batch_eligible": false
+    },
+    {
+      "id": "forge.publish",
+      "method": "POST",
+      "path": "/api/v2/tenants/{tenant_id}/repositories/{repository_id}/forge/publish",
+      "capability": "forge.publish",
+      "output_schema": "ForgeVersionResponse",
+      "input_schema": null,
+      "asynchronous": false,
+      "cli": "gfy forge publish",
+      "mcp_tool": "gfy_forge_publish",
+      "request_schema": "ForgePublish",
+      "request_location": "body",
+      "batch_eligible": false
+    },
+    {
+      "id": "forge.recover",
+      "method": "POST",
+      "path": "/api/v2/tenants/{tenant_id}/repositories/{repository_id}/forge/recover",
+      "capability": "forge.recover",
+      "output_schema": "ForgeRecoveryResult",
+      "input_schema": null,
+      "asynchronous": false,
+      "cli": "gfy forge recover",
+      "mcp_tool": "gfy_forge_recover",
+      "request_schema": "ForgeRecover",
+      "request_location": "body",
+      "batch_eligible": false
+    }
+  ],
+  "mcp_tools": [
+    {
+      "name": "gfy_auth_whoami",
+      "description": "auth.whoami requires identity.read",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "input": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "expected_version": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "cursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tenant_id"
+        ],
+        "$defs": {}
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "principal_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "human",
+              "service",
+              "extension",
+              "job",
+              "migration",
+              "system"
+            ]
+          },
+          "policy_epoch": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "tenant_id",
+          "principal_id",
+          "kind",
+          "policy_epoch",
+          "scopes"
+        ],
+        "$defs": {}
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "x-operation": "auth.whoami"
+    },
+    {
+      "name": "gfy_repo_create",
+      "description": "repo.create requires repository.write",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "input": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "namespace_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "visibility": {
+                "type": "string",
+                "enum": [
+                  "private",
+                  "internal",
+                  "public"
+                ],
+                "default": "private"
+              },
+              "default_branch": {
+                "type": "string",
+                "default": "main"
+              },
+              "description": {
+                "type": "string"
+              },
+              "initial_files": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "path": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 4096
+                    },
+                    "encoding": {
+                      "type": "string",
+                      "enum": [
+                        "utf8",
+                        "base64"
+                      ]
+                    },
+                    "content": {
+                      "type": "string",
+                      "maxLength": 1048576
+                    }
+                  },
+                  "required": [
+                    "path",
+                    "encoding",
+                    "content"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "namespace_id",
+              "name"
+            ]
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "expected_version": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "cursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tenant_id",
+          "input",
+          "idempotency_key"
+        ],
+        "$defs": {}
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "namespace_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_.-]{1,100}$"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "private",
+              "internal",
+              "public"
+            ]
+          },
+          "default_branch": {
+            "type": "string"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "fork_of": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "git_url": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "required": [
+          "tenant_id",
+          "id",
+          "version",
+          "created_at",
+          "updated_at",
+          "namespace_id",
+          "name",
+          "visibility",
+          "default_branch",
+          "archived",
+          "fork_of",
+          "git_url"
+        ],
+        "$defs": {}
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "x-operation": "repo.create"
+    },
+    {
+      "name": "gfy_repo_list",
+      "description": "repo.list requires repository.read",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "input": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000,
+                "default": 100
+              },
+              "cursor": {
+                "type": "string"
+              },
+              "sort": {
+                "type": "string",
+                "enum": [
+                  "created_at",
+                  "updated_at",
+                  "id"
+                ],
+                "default": "created_at"
+              },
+              "direction": {
+                "type": "string",
+                "enum": [
+                  "asc",
+                  "desc"
+                ],
+                "default": "desc"
+              },
+              "namespace_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "visibility": {
+                "type": "string",
+                "enum": [
+                  "private",
+                  "internal",
+                  "public"
+                ]
+              },
+              "archived": {
+                "type": "boolean"
+              }
+            },
+            "required": []
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "expected_version": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "cursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tenant_id"
+        ],
+        "$defs": {}
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/Repository"
+            }
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "has_more": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor",
+          "has_more"
+        ],
+        "$defs": {
+          "Repository": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "tenant_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "version": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "created_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "updated_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "namespace_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "name": {
+                "type": "string",
+                "pattern": "^[a-zA-Z0-9_.-]{1,100}$"
+              },
+              "visibility": {
+                "type": "string",
+                "enum": [
+                  "private",
+                  "internal",
+                  "public"
+                ]
+              },
+              "default_branch": {
+                "type": "string"
+              },
+              "archived": {
+                "type": "boolean"
+              },
+              "fork_of": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "git_url": {
+                "type": "string",
+                "format": "uri"
+              }
+            },
+            "required": [
+              "tenant_id",
+              "id",
+              "version",
+              "created_at",
+              "updated_at",
+              "namespace_id",
+              "name",
+              "visibility",
+              "default_branch",
+              "archived",
+              "fork_of",
+              "git_url"
+            ]
+          }
+        }
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "x-operation": "repo.list"
+    },
+    {
+      "name": "gfy_repo_view",
+      "description": "repo.view requires repository.read",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "input": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "expected_version": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "cursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tenant_id",
+          "id"
+        ],
+        "$defs": {}
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "namespace_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_.-]{1,100}$"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "private",
+              "internal",
+              "public"
+            ]
+          },
+          "default_branch": {
+            "type": "string"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "fork_of": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "git_url": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "required": [
+          "tenant_id",
+          "id",
+          "version",
+          "created_at",
+          "updated_at",
+          "namespace_id",
+          "name",
+          "visibility",
+          "default_branch",
+          "archived",
+          "fork_of",
+          "git_url"
+        ],
+        "$defs": {}
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "x-operation": "repo.view"
+    },
+    {
+      "name": "gfy_forge_head",
+      "description": "Read the authoritative fork descriptor currently published for a repository.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tenant_id",
+          "repository_id"
+        ],
+        "properties": {
+          "tenant_id": {
+            "type": "string"
+          },
+          "repository_id": {
+            "type": "string"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {}
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "x-operation": "forge.head"
+    },
+    {
+      "name": "gfy_forge_list",
+      "description": "List retained fork descriptors known to the repository forge.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tenant_id",
+          "repository_id"
+        ],
+        "properties": {
+          "tenant_id": {
+            "type": "string"
+          },
+          "repository_id": {
+            "type": "string"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {}
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "x-operation": "forge.list"
+    },
+    {
+      "name": "gfy_forge_view",
+      "description": "Read one retained fork descriptor by exact descriptor commit.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tenant_id",
+          "repository_id",
+          "version_commit"
+        ],
+        "properties": {
+          "tenant_id": {
+            "type": "string"
+          },
+          "repository_id": {
+            "type": "string"
+          },
+          "version_commit": {
+            "type": "string"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {}
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "x-operation": "forge.view"
+    },
+    {
+      "name": "gfy_forge_read",
+      "description": "Read a code or forge-state file, or list tree entries, from an exact fork version.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tenant_id",
+          "repository_id",
+          "version",
+          "tree"
+        ],
+        "properties": {
+          "tenant_id": {
+            "type": "string"
+          },
+          "repository_id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "tree": {
+            "enum": [
+              "code",
+              "state"
+            ]
+          },
+          "path": {
+            "type": "string"
+          },
+          "prefix": {
+            "type": "string"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {}
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "x-operation": "forge.read"
+    },
+    {
+      "name": "gfy_forge_compare",
+      "description": "Compare code and forge-state trees between exact fork versions.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tenant_id",
+          "repository_id",
+          "base_version",
+          "head_version"
+        ],
+        "properties": {
+          "tenant_id": {
+            "type": "string"
+          },
+          "repository_id": {
+            "type": "string"
+          },
+          "base_version": {
+            "type": "string"
+          },
+          "head_version": {
+            "type": "string"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {}
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "x-operation": "forge.compare"
+    },
+    {
+      "name": "gfy_forge_initialize",
+      "description": "Initialize a repository forge from exactly one existing code commit or bootstrap code file set.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tenant_id",
+          "repository_id"
+        ],
+        "oneOf": [
+          {
+            "required": [
+              "code_commit"
+            ]
+          },
+          {
+            "required": [
+              "initial_code"
+            ]
+          }
+        ],
+        "properties": {
+          "tenant_id": {
+            "type": "string"
+          },
+          "repository_id": {
+            "type": "string"
+          },
+          "operation_id": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "code_commit": {
+            "type": "string"
+          },
+          "initial_code": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "path",
+                "content_base64"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string"
+                },
+                "content_base64": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "mode": {
+                  "type": "string",
+                  "enum": [
+                    "100644",
+                    "100755",
+                    "120000"
+                  ]
+                }
+              }
+            }
+          },
+          "initial_state": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "path",
+                "content_base64"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string"
+                },
+                "content_base64": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "mode": {
+                  "type": "string",
+                  "enum": [
+                    "100644",
+                    "100755",
+                    "120000"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {}
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "x-operation": "forge.initialize"
+    },
+    {
+      "name": "gfy_forge_fork",
+      "description": "Create an independent retained fork from an exact parent version.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tenant_id",
+          "repository_id",
+          "parent_version"
+        ],
+        "properties": {
+          "tenant_id": {
+            "type": "string"
+          },
+          "repository_id": {
+            "type": "string"
+          },
+          "operation_id": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "parent_version": {
+            "type": "string"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {}
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "x-operation": "forge.fork"
+    },
+    {
+      "name": "gfy_forge_commit",
+      "description": "Apply file changes to code and forge-state trees against an exact parent version.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tenant_id",
+          "repository_id",
+          "parent_version",
+          "changes"
+        ],
+        "properties": {
+          "tenant_id": {
+            "type": "string"
+          },
+          "repository_id": {
+            "type": "string"
+          },
+          "operation_id": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "parent_version": {
+            "type": "string"
+          },
+          "changes": {
+            "type": "array"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {}
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "x-operation": "forge.commit"
+    },
+    {
+      "name": "gfy_forge_merge",
+      "description": "Merge two exact fork versions into a retained integration fork or explicit conflicts.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tenant_id",
+          "repository_id",
+          "base_version",
+          "left_version",
+          "right_version"
+        ],
+        "properties": {
+          "tenant_id": {
+            "type": "string"
+          },
+          "repository_id": {
+            "type": "string"
+          },
+          "operation_id": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "base_version": {
+            "type": "string"
+          },
+          "left_version": {
+            "type": "string"
+          },
+          "right_version": {
+            "type": "string"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {}
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "x-operation": "forge.merge"
+    },
+    {
+      "name": "gfy_forge_publish",
+      "description": "Conditionally publish one exact fork version as the authoritative forge head.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tenant_id",
+          "repository_id",
+          "new_version"
+        ],
+        "properties": {
+          "tenant_id": {
+            "type": "string"
+          },
+          "repository_id": {
+            "type": "string"
+          },
+          "operation_id": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "expected_head": {
+            "type": "string"
+          },
+          "new_version": {
+            "type": "string"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {}
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "x-operation": "forge.publish"
+    },
+    {
+      "name": "gfy_forge_recover",
+      "description": "Reconcile an unfinished publication operation from durable Git records.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tenant_id",
+          "repository_id",
+          "publication_operation_id"
+        ],
+        "properties": {
+          "tenant_id": {
+            "type": "string"
+          },
+          "repository_id": {
+            "type": "string"
+          },
+          "publication_operation_id": {
+            "type": "string"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {}
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "x-operation": "forge.recover"
+    }
+  ]
+}

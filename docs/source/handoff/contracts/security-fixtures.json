@@ -1,0 +1,128 @@
+{
+  "version": "1",
+  "description": "Synthetic expected pass/fail fixtures for the implementation JSON-Schema/Effect decoder suite. No production credentials.",
+  "cases": [
+    {
+      "schema": "SecRoleCreate",
+      "input": {
+        "name": "qa",
+        "description": "Issue triage",
+        "base_role": null,
+        "capabilities": [
+          "issue.read",
+          "issue.write"
+        ],
+        "reason": "Approved QA role"
+      },
+      "valid": true
+    },
+    {
+      "schema": "SecGrantCreate",
+      "input": {
+        "subject_kind": "recovery_human",
+        "subject_id": "human_1",
+        "resource_kind": "tenant",
+        "resource_id": "ten_acme",
+        "role_id": "role_admin",
+        "expires_at": null,
+        "reason": "recovery",
+        "approval_ids": [
+          "approve_1"
+        ]
+      },
+      "valid": false
+    },
+    {
+      "schema": "SecSecretRegister",
+      "input": {
+        "name": "DEPLOY_TOKEN",
+        "scope": {
+          "kind": "tenant"
+        },
+        "allowed_workflow_paths": [
+          ".github/workflows/deploy.yml"
+        ],
+        "allowed_job_capabilities": [
+          "environment.write"
+        ],
+        "reason": "Deployment"
+      },
+      "valid": true
+    },
+    {
+      "schema": "SecSecretScope",
+      "input": {
+        "kind": "tenant",
+        "repository_ids": [
+          "repo_alpha"
+        ]
+      },
+      "valid": false
+    },
+    {
+      "schema": "SecSecretSet",
+      "input": {
+        "name": "DEPLOY_TOKEN",
+        "scope": {
+          "kind": "tenant"
+        },
+        "value": "synthetic-test-secret",
+        "value_from_secret_handle": "handle_1",
+        "allowed_workflow_paths": [],
+        "allowed_job_capabilities": [],
+        "reason": "rotation"
+      },
+      "valid": false
+    },
+    {
+      "schema": "SecDirectorySync",
+      "input": {
+        "connection_id": "idp_acme",
+        "expected_connection_version": 1,
+        "mode": "full",
+        "cursor": "stale"
+      },
+      "valid": false
+    },
+    {
+      "schema": "SecOAuthRegister",
+      "input": {
+        "name": "CLI",
+        "owner_group_id": "grp_admins",
+        "client_type": "public",
+        "redirect_uris": [],
+        "grant_types": [
+          "urn:ietf:params:oauth:grant-type:device_code"
+        ],
+        "allowed_scopes": [
+          "repository.read"
+        ],
+        "allowed_resources": [
+          "https://acme.gitfoundry.test/api"
+        ],
+        "token_endpoint_auth_method": "none"
+      },
+      "valid": true
+    },
+    {
+      "schema": "SecOAuthRegister",
+      "input": {
+        "name": "Bad CLI",
+        "owner_group_id": "grp_admins",
+        "client_type": "public",
+        "redirect_uris": [],
+        "grant_types": [
+          "client_credentials"
+        ],
+        "allowed_scopes": [
+          "repository.read"
+        ],
+        "allowed_resources": [
+          "https://acme.gitfoundry.test/api"
+        ],
+        "token_endpoint_auth_method": "none"
+      },
+      "valid": false
+    }
+  ]
+}

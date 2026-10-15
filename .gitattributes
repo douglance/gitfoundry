@@ -1,0 +1,3 @@
+# These copies must match their recorded SHA-256 byte for byte, including CRLF line endings.
+docs/requirements-trace.csv -text
+docs/source/handoff/requirements-trace.csv -text

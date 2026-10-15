@@ -1,0 +1,121 @@
+[
+  {
+    "schema": "Actor",
+    "value": {
+      "tenant_id": "tenant_a",
+      "principal_id": "principal_a",
+      "kind": "human",
+      "policy_epoch": 7,
+      "scopes": [
+        "repository.read",
+        "pull_request.merge"
+      ]
+    }
+  },
+  {
+    "schema": "Error",
+    "value": {
+      "code": "VERSION_CONFLICT",
+      "detail": "The branch changed after eligibility was computed",
+      "request_id": "request_1",
+      "retryable": false,
+      "details": {
+        "expected_version": 3,
+        "observed_version": 4
+      }
+    }
+  },
+  {
+    "schema": "Repository",
+    "value": {
+      "tenant_id": "tenant_a",
+      "id": "repo_a",
+      "version": 1,
+      "created_at": "2026-10-07T18:00:00Z",
+      "updated_at": "2026-10-07T18:00:00Z",
+      "namespace_id": "ns_a",
+      "name": "demo",
+      "visibility": "private",
+      "default_branch": "main",
+      "archived": false,
+      "fork_of": null,
+      "git_url": "https://acme.gitfoundry.example/git/acme/demo.git"
+    }
+  },
+  {
+    "schema": "MergeRequest",
+    "value": {
+      "head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "base_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "method": "fast-forward",
+      "delete_source_branch": false,
+      "eligibility_id": "eligibility_1"
+    }
+  },
+  {
+    "schema": "HookDecision",
+    "value": {
+      "decision": "deny",
+      "reason_code": "missing_test",
+      "reason": "A required check has not completed",
+      "annotations": []
+    }
+  },
+  {
+    "schema": "Event",
+    "value": {
+      "id": "event_1",
+      "schema_version": "1",
+      "type": "repository.created",
+      "tenant_id": "tenant_a",
+      "aggregate_type": "repository",
+      "aggregate_id": "repo_a",
+      "aggregate_version": 1,
+      "occurred_at": "2026-10-07T18:00:00Z",
+      "actor": {
+        "tenant_id": "tenant_a",
+        "principal_id": "principal_a",
+        "kind": "human",
+        "policy_epoch": 7,
+        "scopes": [
+          "repository.write"
+        ]
+      },
+      "correlation_id": "request_1",
+      "causation_id": null,
+      "depth": 0,
+      "data": {
+        "repository_id": "repo_a"
+      },
+      "aggregate_sequence": 1
+    }
+  },
+  {
+    "schema": "Check",
+    "value": {
+      "tenant_id": "tenant_example",
+      "id": "check_example",
+      "version": 1,
+      "created_at": "2026-10-07T18:00:00Z",
+      "updated_at": "2026-10-07T18:00:00Z",
+      "repository_id": "repo_example",
+      "commit_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "evidence_kind": "external",
+      "candidate_bound": false,
+      "head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "base_sha": null,
+      "execution_sha": null,
+      "plan_digest": null,
+      "policy_digest": null,
+      "job_attempt_id": null,
+      "provider_evidence_ref": "external:trusted-vendor:123",
+      "name": "vendor-test",
+      "producer_id": "extension_vendor",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": null,
+      "output": null,
+      "annotations": []
+    }
+  }
+]

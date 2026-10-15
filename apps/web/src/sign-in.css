@@ -1,0 +1,32 @@
+.sign-in { display: grid; grid-template-columns: minmax(320px, 5fr) minmax(0, 7fr); min-height: 100svh; background: var(--color-kumo-base); color: var(--color-kumo-default); }
+.sign-in-brand { display: flex; flex-direction: column; gap: 48px; padding: 48px; border-right: 1px solid var(--color-kumo-line); background: var(--color-kumo-recessed); }
+.sign-in-mark, .sign-in-mobile-mark { display: flex; align-items: center; gap: 12px; font-family: "Avenir Next", "Trebuchet MS", sans-serif; font-size: 22px; font-weight: 600; letter-spacing: -0.03em; }
+.sign-in-mobile-mark { display: none; font-size: 18px; }
+.sign-in-story { display: grid; gap: 40px; margin-block: auto; max-width: 360px; }
+.sign-in-lineage { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; }
+.sign-in-lineage li { position: relative; display: flex; justify-content: space-between; gap: 16px; padding: 12px 14px; border: 1px solid var(--color-kumo-line); border-radius: 4px; background: var(--color-kumo-base); font-size: 13px; font-weight: 600; }
+.sign-in-lineage li + li::before { content: ""; position: absolute; top: -15px; left: 24px; width: 1px; height: 14px; background: var(--color-kumo-line); }
+.sign-in-lineage li:not(.is-head) { margin-left: 28px; }
+.sign-in-lineage li:nth-child(2)::before { left: -14px; top: -15px; height: 37px; }
+.sign-in-lineage li:nth-child(3)::before { left: -14px; top: -59px; height: 81px; }
+.sign-in-lineage li:not(.is-head)::after { content: ""; position: absolute; top: 21px; left: -14px; width: 14px; height: 1px; background: var(--color-kumo-line); }
+.sign-in-lineage code { color: var(--color-kumo-subtle); font-size: 11px; font-weight: 500; }
+.sign-in-lineage .is-head { border-color: var(--forge-accent); }
+.sign-in-lineage .is-head code { color: var(--forge-accent); }
+.sign-in-tagline { margin: 0; font-family: "Avenir Next", "Trebuchet MS", sans-serif; font-size: 24px; line-height: 1.25; letter-spacing: -0.03em; }
+.sign-in-panel { display: grid; place-items: center; padding: 48px 24px; }
+.sign-in-card { width: 100%; max-width: 400px; }
+.sign-in-form { display: grid; gap: 20px; }
+.sign-in-heading { display: grid; gap: 8px; }
+.sign-in-heading h1 { margin: 0; font-family: "Avenir Next", "Trebuchet MS", sans-serif; font-size: 28px; letter-spacing: -0.035em; }
+.sign-in-address { color: var(--color-kumo-default); overflow-wrap: anywhere; }
+.sign-in-submit { width: 100%; min-height: 44px; justify-content: center; }
+.sign-in-code input, input.sign-in-code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 22px; letter-spacing: 0.4em; }
+.sign-in-secondary { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.sign-in-secondary button { min-height: 44px; }
+@media (max-width: 767px) {
+  .sign-in { grid-template-columns: minmax(0, 1fr); }
+  .sign-in-brand { display: none; }
+  .sign-in-panel { place-items: start center; padding: 40px 16px; }
+  .sign-in-mobile-mark { display: flex; margin-bottom: 32px; }
+}

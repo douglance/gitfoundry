@@ -1,0 +1,27 @@
+{
+  "name": "@gitfoundry/web",
+  "version": "0.0.0-p1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test scripts/document-api.test.mjs && node scripts/verify.mjs",
+    "test:browser": "node scripts/browser-gate.mjs",
+    "serve:harness": "node scripts/harness-server.mjs",
+    "dev": "vite --host 127.0.0.1"
+  },
+  "dependencies": {
+    "@cloudflare/kumo": "2.14.0",
+    "@phosphor-icons/react": "2.1.10",
+    "@pierre/diffs": "1.5.2",
+    "@pierre/theme": "2.0.0",
+    "@pierre/theming": "1.0.1",
+    "@pierre/trees": "1.0.0-beta.6",
+    "nuqs": "2.10.2",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "vite": "8.3.4"
+  }
+}

@@ -1,0 +1,83 @@
+:root {
+  --gitfoundry-footer-height: 56px;
+}
+
+.workspace-chrome-footer {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 40;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 8px 16px;
+  color: var(--color-kumo-default);
+  background: var(--color-kumo-base);
+  border-top: 1px solid var(--color-kumo-line);
+}
+
+.workspace-chrome-actions,
+.workspace-chrome-links {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.workspace-chrome-actions {
+  flex: 0 0 auto;
+}
+
+.workspace-chrome-actions > button,
+.workspace-chrome-links a {
+  min-height: 44px;
+}
+
+.workspace-chrome-status {
+  min-width: 0;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.workspace-chrome-links {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.workspace-chrome-dialog {
+  display: grid;
+  gap: 16px;
+  padding: 16px;
+}
+
+@media (max-width: 720px) {
+  .workspace-chrome-footer {
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+    grid-template-areas:
+      "actions status"
+      "links links";
+    align-items: center;
+    gap: 4px 8px;
+    padding: 6px 8px;
+  }
+
+  .workspace-chrome-actions {
+    grid-area: actions;
+  }
+
+  .workspace-chrome-status {
+    grid-area: status;
+    text-align: left;
+  }
+
+  .workspace-chrome-links {
+    grid-area: links;
+    justify-content: flex-start;
+  }
+
+}
+
+.workspace-chrome-links a { display: inline-flex; align-items: center; }

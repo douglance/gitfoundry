@@ -1,0 +1,168 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:gitfoundry:hook-invocation:v1",
+  "$defs": {
+    "Actor": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "principal_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "human",
+            "service",
+            "extension",
+            "job",
+            "migration",
+            "system"
+          ]
+        },
+        "policy_epoch": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "scopes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "tenant_id",
+        "principal_id",
+        "kind",
+        "policy_epoch",
+        "scopes"
+      ]
+    }
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "envelope_version": {
+      "const": "1"
+    },
+    "hook": {
+      "const": "pull_request.merge.pre"
+    },
+    "tenant_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "installation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "invocation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "request_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "actor": {
+      "$ref": "#/$defs/Actor"
+    },
+    "resource": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "version"
+      ]
+    },
+    "policy_version": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "deadline_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "causation_id": {
+      "type": "string"
+    },
+    "correlation_id": {
+      "type": "string"
+    },
+    "causal_depth": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 16
+    },
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "repository_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "base_sha": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$|^[a-f0-9]{64}$"
+        },
+        "head_sha": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$|^[a-f0-9]{64}$"
+        },
+        "merge_method": {
+          "enum": [
+            "merge",
+            "squash",
+            "rebase",
+            "fast-forward"
+          ]
+        }
+      },
+      "required": [
+        "repository_id",
+        "base_sha",
+        "head_sha",
+        "merge_method"
+      ]
+    }
+  },
+  "required": [
+    "envelope_version",
+    "hook",
+    "tenant_id",
+    "installation_id",
+    "invocation_id",
+    "request_id",
+    "actor",
+    "resource",
+    "policy_version",
+    "deadline_at",
+    "causation_id",
+    "correlation_id",
+    "causal_depth",
+    "input"
+  ],
+  "description": "Concrete pull_request.merge.pre invocation schema. Other hook names require their own strict input schemas; semantic hook validation rejects a name/input mismatch."
+}

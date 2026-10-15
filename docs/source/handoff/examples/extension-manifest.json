@@ -1,0 +1,212 @@
+{
+  "manifest_version": "1",
+  "name": "acme/review-policy",
+  "version": "1.0.0",
+  "api_version": "1",
+  "description": "Check a tenant-approved change ticket before merging an exact pull request revision.",
+  "runtime": {
+    "kind": "worker",
+    "entrypoint": "dist/index.js"
+  },
+  "capabilities": [
+    {
+      "action": "repository.read",
+      "resources": {
+        "repository_ids": [
+          "repository_opaque"
+        ]
+      }
+    },
+    {
+      "action": "pull_request.read",
+      "resources": {
+        "repository_ids": [
+          "repository_opaque"
+        ]
+      }
+    },
+    {
+      "action": "check.read",
+      "resources": {
+        "repository_ids": [
+          "repository_opaque"
+        ]
+      }
+    },
+    {
+      "action": "event.read",
+      "resources": {
+        "repository_ids": [
+          "repository_opaque"
+        ]
+      }
+    }
+  ],
+  "egress": [],
+  "limits": {
+    "cpu_ms": 100,
+    "wall_ms": 1000,
+    "memory_mib": 128,
+    "concurrency": 10,
+    "output_bytes": 65536
+  },
+  "hooks": [
+    {
+      "name": "pull_request.merge.pre",
+      "handler": "mergePolicy",
+      "required": true,
+      "priority": 100,
+      "deadline_ms": 1000,
+      "input_schema_version": "1",
+      "output_schema_version": "1"
+    }
+  ],
+  "events": [
+    {
+      "types": [
+        "pull_request.opened",
+        "pull_request.revised"
+      ],
+      "handler": "observeRevision",
+      "event_version": "1"
+    }
+  ],
+  "contributions": {
+    "cli": [
+      {
+        "command": "evaluate",
+        "handler": "evaluate",
+        "description": "Evaluate the configured ticket policy for an exact PR revision.",
+        "input_schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "tenant_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "repository_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "pull_request_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "head_sha": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          "required": [
+            "tenant_id",
+            "repository_id",
+            "pull_request_id",
+            "head_sha"
+          ]
+        },
+        "output_schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "ticket_present": {
+              "type": "boolean"
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          "required": [
+            "ticket_present",
+            "reason"
+          ]
+        }
+      }
+    ],
+    "mcp": [
+      {
+        "operation": "evaluate",
+        "handler": "evaluate",
+        "description": "Return a change-ticket policy evaluation for the supplied PR revision.",
+        "input_schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "tenant_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "repository_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "pull_request_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "head_sha": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          "required": [
+            "tenant_id",
+            "repository_id",
+            "pull_request_id",
+            "head_sha"
+          ]
+        },
+        "output_schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "ticket_present": {
+              "type": "boolean"
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          "required": [
+            "ticket_present",
+            "reason"
+          ]
+        },
+        "effect": "read",
+        "idempotent": true
+      }
+    ],
+    "ui": [],
+    "workflow_steps": []
+  },
+  "oauth": {
+    "inbound": [],
+    "outbound": []
+  },
+  "config_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "ticket_label": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 100
+      }
+    },
+    "required": [
+      "ticket_label"
+    ]
+  }
+}
