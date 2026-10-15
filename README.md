@@ -50,8 +50,10 @@ You need Node.js 22 or later.
 ```bash
 git clone https://github.com/douglance/gitfoundry.git
 cd gitfoundry
-node scripts/agents-demo-setup.mjs you@example.com   # emails you a sign-in code and creates a demo repository
-node scripts/agents-demo.mjs                         # three agents fork, merge, test and publish
+# Emails you a sign-in code and creates a demo repository
+node scripts/agents-demo-setup.mjs you@example.com
+# Three agents fork, merge, test and publish
+node scripts/agents-demo.mjs
 ```
 
 Open the link the setup prints and choose **Forge** to watch the lineage. Ada adds sales tax, Grace adds currency formatting, and Linus adds discount codes. Ada and Linus both rewrite the same function, so Linus resolves the conflict. The tests run on the merged code and publish it. Then Grace's old fork tries to publish from a head that has already moved, and the forge refuses it.
@@ -59,16 +61,13 @@ Open the link the setup prints and choose **Forge** to watch the lineage. Ada ad
 ## How it works
 
 ```mermaid
-flowchart LR
-    H([forge head]) --> A[ada's fork]
-    H --> G[grace's fork]
-    H --> L[linus's fork]
-    A --> I[integration fork]
-    G --> I
-    L -. conflict handed back .-> R[linus resolves on the integration line]
+flowchart TD
+    H([forge head]) --> A[ada adds tax] & G[grace adds currency] & L[linus adds discounts]
+    A & G --> I[integration fork]
+    L -. conflict handed back .-> R[linus resolves it on the integration line]
     I --> R
-    R --> T{tests pass on<br>the exact code?}
-    T -- yes --> P([publish: head moves only<br>if nobody moved it first])
+    R --> T{tests pass on the exact merged code?}
+    T -- yes --> P([publish: the head moves only if nobody moved it first])
     T -- no --> N[nothing is published]
     S[grace's stale fork] -. refused .-> P
 ```
