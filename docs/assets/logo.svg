@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="120 220 1280 690" width="320" height="173" role="img" aria-label="GitFoundry anvil">
+  <defs>
+    <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFC229"/>
+      <stop offset=".55" stop-color="#FF8A12"/>
+      <stop offset="1" stop-color="#F25A00"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-30%" width="140%" height="160%">
+      <feGaussianBlur stdDeviation="22"/>
+    </filter>
+  </defs>
+  <path id="anvil" d="M190,322 L525,322 L575,277 L1322,277 Q1342,277 1342,297 L1342,398 Q1342,418 1322,420 C1180,425 1060,480 1035,560 C1015,650 1080,730 1185,748 L1226,836 Q1232,850 1216,850 L990,850 L940,780 L720,780 L668,850 L458,850 Q442,850 448,836 L485,750 C560,735 630,700 640,640 C650,575 610,545 560,540 C400,520 270,440 186,342 Q176,322 190,322 Z" fill="#FF7A0A" opacity=".45" filter="url(#glow)"/>
+  <path d="M190,322 L525,322 L575,277 L1322,277 Q1342,277 1342,297 L1342,398 Q1342,418 1322,420 C1180,425 1060,480 1035,560 C1015,650 1080,730 1185,748 L1226,836 Q1232,850 1216,850 L990,850 L940,780 L720,780 L668,850 L458,850 Q442,850 448,836 L485,750 C560,735 630,700 640,640 C650,575 610,545 560,540 C400,520 270,440 186,342 Q176,322 190,322 Z" fill="url(#metal)"/>
+  <path d="M575,277 L1322,277 Q1342,277 1342,297 L1342,300 L560,300 Z" fill="#FFE08A" opacity=".55"/>
+</svg>
